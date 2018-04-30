@@ -17,7 +17,7 @@ class OpenCLArray(AnArray,GpuArray):
                 KERNEL_CODE = file.read()
             OpenCLArray.ctx = pyopencl.create_some_context()
             OpenCLArray.queue = pyopencl.CommandQueue(OpenCLArray.ctx,
-                                    properties=pyopencl.command_queue_properties.PROFILING_ENABLE)
+                                        properties=pyopencl.command_queue_properties.PROFILING_ENABLE)
             OpenCLArray.block_size = block
             if(kernel_params is None):
                 kernel_params = ''
@@ -37,20 +37,27 @@ class OpenCLArray(AnArray,GpuArray):
             self.buf = pyopencl.Buffer\
                     (self.ctx,self.mf.READ_WRITE |self.mf.COPY_HOST_PTR, hostbuf=host)
 
+            
+    def __del__(self):
+        self.buf.release()
 
+        
     def transpose(self):
+        # Posible optimización calculando los bytes sin crear la matriz numpy
         C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         
         self.prg.transpose(self.queue, C.shape, self.block_size,
                            c_buf, self.buf, numpy.uint32(self.m), numpy.uint32(self.n))
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.n,self.m,c_buf,None)
 
 
     def add(self,B):
+        # Posible optimización calculando los bytes sin crear la matriz numpy
         C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
-        
+
+        # Agregar excepcion tamaño de la matriz b = tamaño matriz a
         self.prg.add(self.queue, C.shape, self.block_size,
                            self.buf, B.buf,c_buf)
         return OpenCLArray(self.m,self.n,c_buf,None)
@@ -107,6 +114,5 @@ class OpenCLArray(AnArray,GpuArray):
     
     def to_numpy(self):
         C = numpy.zeros((self.m*self.n),dtype=numpy.float32)
-        r = numpy.empty_like(C)
-        pyopencl.enqueue_copy(self.queue, r, self.buf)
-        return r.reshape(self.m,self.n)
+        pyopencl.enqueue_copy(self.queue, C, self.buf)
+        return C.reshape(self.m,self.n)
