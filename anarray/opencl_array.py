@@ -13,7 +13,7 @@ class OpenCLArray(AnArray,GpuArray):
 
     def set_enviroment(block = None, options = None, kernel_params = None):
         if(not OpenCLArray.ready):
-            with open('kernel.c') as file:
+            with open('./kernel.cl') as file:
                 KERNEL_CODE = file.read()
             OpenCLArray.ctx = pyopencl.create_some_context()
             OpenCLArray.queue = pyopencl.CommandQueue(OpenCLArray.ctx,
@@ -31,6 +31,7 @@ class OpenCLArray(AnArray,GpuArray):
     def __init__(self,m,n,buf=None,host=None):
         self.m = m
         self.n = n
+        self.shape = (m,n)
         if(host is None):
             self.buf = buf
         else:
@@ -74,8 +75,12 @@ class OpenCLArray(AnArray,GpuArray):
         C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         
-        self.prg.multiply(self.queue, C.shape, self.block_size,
-                           self.buf, B.buf,c_buf)
+        if(not isinstance(B,OpenCLArray)):
+            self.prg.scalar_mult(self.queue, C.shape, self.block_size,
+                                self.buf,numpy.float32(B),c_buf)
+        else:
+            self.prg.multiply(self.queue, C.shape, self.block_size,
+                               self.buf, B.buf,c_buf)
         return OpenCLArray(self.m,self.n,c_buf,None)
     
     def divide(self,B):
@@ -90,11 +95,15 @@ class OpenCLArray(AnArray,GpuArray):
         C = numpy.zeros((self.m*B.n), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         
-        self.prg.dot(self.queue, C.shape, self.block_size,self.buf, B.buf, c_buf,
-                     numpy.uint32(self.m),
-                     numpy.uint32(self.n),
-                     numpy.uint32(B.n))
-        return OpenCLArray(self.m,B.n,c_buf,None)
+        if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
+            return B.transpose().dot(self)
+        else:
+
+            self.prg.dot_matrix(self.queue, C.shape, self.block_size,self.buf, B.buf, c_buf,
+                         numpy.uint32(self.m),
+                         numpy.uint32(self.n),
+                         numpy.uint32(B.n))
+            return OpenCLArray(self.m,B.n,c_buf,None)
 
     def mod(self,B):
         C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
@@ -111,7 +120,26 @@ class OpenCLArray(AnArray,GpuArray):
         self.prg.negative(self.queue, C.shape, self.block_size,
                            c_buf, self.buf)
         return OpenCLArray(self.m,self.n,c_buf,None)
+
+    def sqrt(self):
+        C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
+        self.prg.sqrt_(self.queue, C.shape, self.block_size,
+                           c_buf, self.buf)
+        return OpenCLArray(self.m,self.n,c_buf,None)
     
+    def norm(self):
+        at = self.transpose()
+        n2 = []
+        if(self.m != 1):
+            n2 = at @ self
+        else:
+            n2 = self @ at
+        return float(numpy.sqrt(n2.to_numpy()))
+
+    def __float__(self):
+        return float(self.to_numpy())
+
     def to_numpy(self):
         C = numpy.zeros((self.m*self.n),dtype=numpy.float32)
         pyopencl.enqueue_copy(self.queue, C, self.buf)

@@ -31,6 +31,8 @@ class AnArray:
         return self.iadd(other)    
     def __mul__(self,other):             # A * B (element-wise multiplication)
         return self.multiply(other)
+    def __rmul__(self,other):
+        return self.multiply(other)
     def __matmul__(self,other):          # A @ B (dot product)
         return self.dot(other)
     def __truediv__(self,other):         # A / B (element-wise)

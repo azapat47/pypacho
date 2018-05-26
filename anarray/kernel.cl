@@ -1,3 +1,5 @@
+//#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
 __kernel void transpose(__global float *a_t, __global float *a, unsigned a_width, unsigned a_height)
 {
   int gid = get_global_id(0);
@@ -27,13 +29,19 @@ __kernel void multiply(__global float *a, __global float *b, __global float *c)
   c[gid] = a[gid] * b[gid];
 }
 
+__kernel void scalar_mult(__global float *a, float b, __global float *c)
+{
+  int gid = get_global_id(0);
+  c[gid] = a[gid] * b;
+}
+
 __kernel void divide(__global float *a, __global float *b, __global float *c)
 {
   int gid = get_global_id(0);
   c[gid] = a[gid] / b[gid];
 }
 
-__kernel void dot(__global float *a,__global float *b, __global float *c,
+__kernel void dot_matrix(__global float *a,__global float *b, __global float *c,
 		  unsigned m, unsigned n, unsigned p)
 {
   int gid = get_global_id(0);
@@ -57,8 +65,32 @@ __kernel void dot(__global float *a,__global float *b, __global float *c,
   c[gid] = a[gid] % b[gid];
   }*/
 
-__kernel void negative(__global float *a_n, __global float *a, unsigned a_width, unsigned a_height)
+__kernel void negative(__global float *a_n, __global float *a)
 {
   int gid = get_global_id(0);
   a_n[gid] = -a[gid];             
+}
+
+__kernel void sqrt_(__global float *a_n, __global float *a)
+{
+  int gid = get_global_id(0);
+  a_n[gid] = half_sqrt(a[gid]);             
+}
+
+__kernel void norm(__global float *norm, __global float *a)
+{
+  int gid = get_global_id(0);
+  norm[0] = half_sqrt(a[gid]);
+}
+
+__kernel void diag(__global float *a, __global float *b, int a_size)
+{
+  int gid = get_global_id(0);
+  b[gid] = a[gid*a_size + gid];
+}
+
+__kernel void diagflat(__global float *a, __global float *b, int a_size)
+{
+  int gid = get_global_id(0);
+  a[gid*a_size + gid] = b[gid];
 }
