@@ -43,6 +43,15 @@
             c[idx + (idy*size)] =  a[idx + (idy*size)] * b[idx + (idy*size)];
         }
     }
+
+    __global__ void RMulti(int size,  float b, float *a, float *c)
+    {
+        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
+        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
+        if(idx < size && idy < size){
+            c[idx + (idy*size)] =  a[idx + (idy*size)] * b;
+        }
+    }
     
     __global__ void IMulti(int size, float *a, float *b)
     {
@@ -113,12 +122,12 @@
         }
     }
     
-    __global__ void Transpose(int size, const float *a, float *b)
+    __global__ void Transpose(int sizem, int sizen, const float *a, float *b)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
-        if(tx < size && ty < size){
-            b[ty + (tx*size)] =  a[tx + (ty*size)];
+        if(tx < sizem && ty < sizen){
+            b[ty + (tx*sizen)] =  a[tx + (ty*sizem)];
         }
     }
     

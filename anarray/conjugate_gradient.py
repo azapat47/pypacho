@@ -1,11 +1,18 @@
 from opencl_array import OpenCLArray
+from our_cuda import OurCuda
+import numpy as np
+
+def norm(x):
+    d = x.transpose()
+    cross = d @ x
+    return np.sqrt(float(cross))
 
 def conjugate_gradient(A,b,x0,np,N=25,error=0.001):
     x = x0
     r = b - (A @ x)
     s = r
     iter = 0
-    while (np.norm(r) > error)&(iter <= N):
+    while (norm(r) > error)&(iter <= N):
         q = A @ s
         alpha = float((s.transpose() @ r)/(s.transpose() @ q))
         x = x + alpha*s
