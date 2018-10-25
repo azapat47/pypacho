@@ -1,5 +1,5 @@
 from opencl_array import OpenCLArray
-from jacobi import jacobi
+from methods.jacobi import jacobi
 import os
 from time import time
 

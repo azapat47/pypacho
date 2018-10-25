@@ -2,7 +2,7 @@ from anarray import AnArray
 from gpu_array import GpuArray
 from opencl_array import OpenCLArray
 from our_cuda import OurCuda
-from jacobi import jacobi
+from methods.jacobi import jacobi
 import numpy as np
 import os
 from time import time

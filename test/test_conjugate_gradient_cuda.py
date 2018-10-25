@@ -1,6 +1,6 @@
 from opencl_array import OpenCLArray
 from our_cuda import OurCuda
-from conjugate_gradient import conjugate_gradient
+from methods.conjugate_gradient import conjugate_gradient
 import os
 from time import time
 

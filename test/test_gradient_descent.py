@@ -1,5 +1,5 @@
 from opencl_array import OpenCLArray
-from gradient_descent import gradient_descent
+from methods.gradient_descent import gradient_descent
 import os
 from time import time
 

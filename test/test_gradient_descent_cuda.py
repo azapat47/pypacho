@@ -1,5 +1,5 @@
 from our_cuda import OurCuda
-from gradient_descent import gradient_descent, gradient_descent2
+from method.gradient_descent import gradient_descent, gradient_descent2
 import os
 from time import time
 
