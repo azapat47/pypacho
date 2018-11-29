@@ -1,5 +1,5 @@
-from gpu_array import GpuArray
-from anarray import AnArray
+from pypacho.anarray import GpuArray, AnArray
+from pypacho.opencl import kernel
 import pyopencl
 import numpy
 
@@ -13,7 +13,7 @@ class OpenCLArray(AnArray,GpuArray):
 
     def set_enviroment(block = None, options = None, kernel_params = None):
         if(not OpenCLArray.ready):
-            with open('./kernel.cl') as file:
+            with open(kernel.get_path()) as file:
                 KERNEL_CODE = file.read()
             OpenCLArray.ctx = pyopencl.create_some_context()
             OpenCLArray.queue = pyopencl.CommandQueue(OpenCLArray.ctx,
@@ -126,6 +126,20 @@ class OpenCLArray(AnArray,GpuArray):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         self.prg.sqrt_(self.queue, C.shape, self.block_size,
                            c_buf, self.buf)
+        return OpenCLArray(self.m,self.n,c_buf,None)
+
+    def diag(self):
+        C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
+        self.prg.diag(self.queue, C.shape, self.block_size,
+                           self.buf, c_buf, numpy.uint32(self.n))
+        return OpenCLArray(self.m,self.n,c_buf,None)
+
+    def diagflat(self):
+        C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
+        self.prg.diagflat(self.queue, C.shape, self.block_size,
+                           self.buf, c_buf, numpy.uint32(self.n))
         return OpenCLArray(self.m,self.n,c_buf,None)
     
     def norm(self):

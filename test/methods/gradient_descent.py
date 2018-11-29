@@ -1,19 +1,24 @@
-from opencl_array import OpenCLArray
-from our_cuda import OurCuda
-import numpy as np
-def norm(x):
-    d = x.transpose()
-    cross = d @ x
-    return np.sqrt(float(cross))
+import helper
 
-def gradient_descent(A,b,alpha,x0,np,N=25,tol=0.01):
+np = None
+
+def import_library(library = 'pypacho'):
+    global np
+    if library == 'pypacho':
+        import pypacho
+        np = pypacho
+    else:
+        import numpy
+        np = numpy
+
+def gradient_descent(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       
     error = tol+1  
     x = x0
     while (error > tol)&(iter <= N):
         grad = A.transpose() @ (A@x - b)
         xn = x - alpha*grad
-        error = norm(x - xn)
+        error = np.linalg.norm(x - xn) / np.linalg.norm(xn)
         x = xn
         iter = iter + 1 
     if (iter > N):
@@ -21,7 +26,7 @@ def gradient_descent(A,b,alpha,x0,np,N=25,tol=0.01):
     else:
         return x
 
-def gradient_descent2(A,b,alpha,x0,np,N=25,tol=0.01):
+def gradient_descent2(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       
     error = tol+1  
     x = x0
@@ -32,7 +37,7 @@ def gradient_descent2(A,b,alpha,x0,np,N=25,tol=0.01):
         grandn = A.transpose() @ (A@xn - b)
         grandn_m_0 = grandn - grad
         alpha = float((xn_m_x.transpose() @ grandn_m_0) / (grandn_m_0.transpose() @ grandn_m_0)) 
-        error = norm(x - xn)/norm(x)
+        error = np.linalg.norm(x - xn) / np.linalg.norm(xn)
         x = xn
         grad = grandn
         iter = iter + 1 

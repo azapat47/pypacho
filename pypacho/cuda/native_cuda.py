@@ -1,5 +1,4 @@
-from gpu_array import GpuArray
-from anarray import AnArray
+from pypacho.anarray import GpuArray, AnArray
 from pycuda import driver, compiler, gpuarray, tools
 import pycuda.autoinit
 import numpy as np
