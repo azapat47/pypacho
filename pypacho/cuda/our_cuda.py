@@ -1,7 +1,9 @@
 from pypacho.anarray import GpuArray, AnArray
+from pypacho.cuda import kernel
 from pycuda import driver, compiler, gpuarray, tools
 import pycuda.autoinit
 import numpy as np
+
 
 class OurCuda(AnArray,GpuArray):
     kernel_code_template = None
@@ -10,7 +12,7 @@ class OurCuda(AnArray,GpuArray):
     #Se tiene que cambiar a self, n, m, Matrix, host=None
     def __init__(self,n,m,Matrix = None,GpuMatrix = None):
 
-        with open('kernel.cu') as file:
+        with open(kernel.get_path()) as file:
                 self.kernel_code_template = file.read()
         self.kernelBin = compiler.SourceModule(self.kernel_code_template)
         self.n = n
@@ -194,3 +196,12 @@ class OurCuda(AnArray,GpuArray):
 
     def __float__(self):
         return float(self.Matrix.get()[0,0])
+    
+    def norm(self):
+        at = self.transpose()
+        n2 = []
+        if(self.m != 1):
+            n2 = at @ self
+        else:
+            n2 = self @ at
+        return float(numpy.sqrt(n2.to_numpy()))

@@ -5,11 +5,11 @@ from time import time
 import os
 import numpy
 
-os.environ['PYOPENCL_CTX'] = '0:0'
+os.environ['PYOPENCL_CTX'] = '0'
 OpenCLArray.set_enviroment()
 import_library('pypacho')
 
-n = 1000
+n = 10
 A = numpy.random.rand(n,n).astype(numpy.float32)
 
 A = (A + numpy.eye(n)*(n+1)).astype(numpy.float32)

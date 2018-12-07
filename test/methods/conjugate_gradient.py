@@ -11,6 +11,13 @@ def import_library(library = 'pypacho'):
         import numpy
         np = numpy
 
+import numpy as np
+
+def norm(x):
+    d = x.transpose()
+    cross = d @ x
+    return np.sqrt(float(cross))
+
 def conjugate_gradient(A,b,x0,N=25,tol=0.001):
     x = x0
     r = b - (A @ x)
@@ -26,8 +33,9 @@ def conjugate_gradient(A,b,x0,N=25,tol=0.001):
         #print(beta)
         s = r + beta*s
         iter = iter + 1
-        error = np.linalg.norm(r) 
+        error = norm(r) 
     if (iter > N):
         print("Se ha excedido el número de iteraciones. Procedimiento FALLIDO")
+        return x
     else:
         return x

@@ -5,11 +5,11 @@ from time import time
 import os
 import numpy as np
 
-os.environ['PYOPENCL_CTX'] = '0:0'
+os.environ['PYOPENCL_CTX'] = '0'
 OpenCLArray.set_enviroment()
 import_library('pypacho')
 
-n = 5000
+n = 500
 A = np.random.rand(n,n).astype(np.float32)
 
 A = (A + np.eye(n)*(n+1)).astype(np.float32)
@@ -24,7 +24,7 @@ x0 = np.ones((n,1),dtype=np.float32)*(n+1)
 x0_gpu = OpenCLArray(n,1,None,x0)
 
 t = time()
-sol = conjugate_gradient(a_gpu,b,x0_gpu,N=5000,error=1)
+sol = conjugate_gradient(a_gpu,b,x0_gpu,N=5000)
 t_gpu = time() - t
 
 print('error')
