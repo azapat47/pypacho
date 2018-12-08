@@ -26,14 +26,17 @@ def main(size,delta):
     A_np,B_np,xorigin_np = generate(size)
     # Create CUDA array
     # Create OpenCL array
-    test(jacobi,A,B,xorigin,N,tol,alpha=0)
+    test(jacobi,xorigin, A,B,N,tol,alpha=0)
 
 # Generate
 
 # Test Jacobi
-def test(method, *args):
+# The arguments must be [Method, Original X, and specific method args]
+def test(method, xv, *args):
     # Initial Time
-    method(*args)
+    t_start = time()
+    x,iter = method(*args)
+    t = time() - t_start
     # Final Time
     print("**"*40)
     print("Error: ", end="")

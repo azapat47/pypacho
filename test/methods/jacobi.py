@@ -30,4 +30,4 @@ def jacobi(A,b,x0,N=100,tol=0.005):
         disp = norm(xn - x) / norm(xn)
         x = xn
         i +=1
-    return x
+    return x,i

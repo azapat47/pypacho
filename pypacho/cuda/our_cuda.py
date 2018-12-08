@@ -197,11 +197,6 @@ class OurCuda(AnArray,GpuArray):
     def __float__(self):
         return float(self.Matrix.get()[0,0])
     
-    def norm(self):
-        at = self.transpose()
-        n2 = []
-        if(self.m != 1):
-            n2 = at @ self
-        else:
-            n2 = self @ at
-        return float(numpy.sqrt(n2.to_numpy()))
+    def to_numpy(self):
+        mat = self.Matrix.get()
+        return mat

@@ -36,6 +36,6 @@ def conjugate_gradient(A,b,x0,N=25,tol=0.001):
         error = norm(r) 
     if (iter > N):
         print("Se ha excedido el número de iteraciones. Procedimiento FALLIDO")
-        return x
+        return x,iter
     else:
-        return x
+        return x,iter
