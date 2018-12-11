@@ -30,9 +30,9 @@ def gradient_descent(A,b,alpha,x0,N=25,tol=0.01):
         iter = iter + 1 
     if (iter > N):
         print("Se ha excedido el número de iteraciones. Procedimiento FALLIDO")
-        return x
+        return x,iter
     else:
-        return x
+        return x,iter
 
 def gradient_descent2(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       

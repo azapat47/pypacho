@@ -21,8 +21,8 @@ def norm(x):
 def jacobi(A,b,x0,N=100,tol=0.005):    
     x = x0
     disp =  tol+1 
-    D = np.diag(A)
-    diagflat = np.diagflat(D)
+    D = A.diag()
+    diagflat = D.diagflat()
     R = A - diagflat
     i = 0
     while disp > tol and i < N:
