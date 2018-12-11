@@ -9,6 +9,7 @@ import numpy as np
 import os
 from time import time
 import collections
+import pandas as pd
 import json
 import sys
 
@@ -34,7 +35,8 @@ def turn_dominant(Matriz, delta = 0):
 # Arguments: EXIT_CODE: specify if any exit code is required       
 def usage(ec=None):
   print("Usage - optirun python3 laboratory.py [args] ")
-  print("Arguments: Iterable of Glob_params [trys ,size, delta] The number of trys, the size of the matrix and the delta of growth. The first matriz is always with a size of delta.") 
+  print("Arguments: Iterable of Glob_params [trys ,size, delta] The number of trys, the number of matrices and the delta of growth.")
+  print ("                                                      The first matriz is always with a size of delta.") 
   print("           Iterable of plataforms  [cuda, opencl, numpy] Plataforms, boolean value, in that order.")
   print("           Iterable of Methods     [jacobi, GD, CG] Methods, boolean value, in that order.")
   if(ec is not None):
@@ -64,6 +66,12 @@ def main(Glob_params, plataforms, methods):
       usage(1)
      
     print("LAB: ***Starting***")
+    # Creationg pandas DataFrame
+    fat_panda = pd.DataFrame(columns=["platform", "method", "size", "iterations", "time", "error" ])
+    fat_panda["size"] = fat_panda["size"].astype(int)
+    fat_panda["iterations"] = fat_panda["iterations"].astype(int)
+     fat_panda["iterations"] = fat_panda["time"].astype(float)
+    fat_panda["error"] = fat_panda["error"].astype(float)
     delta = Glob_params[2]
     n = Glob_params[1]
     #For every matrix size
@@ -72,11 +80,12 @@ def main(Glob_params, plataforms, methods):
       print(str(int(matrix_size/delta)) + '/' + str(n))
       # Number Of trys  
       for tr in range(Glob_params[0]): 
-        print("  LAB: Trying number", tr, end='... ')
-        runner(matrix_size, 100, 0.001, 0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
-        #################### TODO ###################
-        ################ Add to PANDAS ##############
+        print("  LAB: Trying number", tr, end='... \n')
+        df = runner(matrix_size, 100, 0.001, 0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
+        fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
+    
+    print(fat_panda.info())
 
 
         
@@ -86,7 +95,6 @@ def main(Glob_params, plataforms, methods):
 def test(method, xv, *args):
     # Initial Time
     t_start = time()
-    print
     x_meth,iter = method(*args)
     t = time() - t_start
     # Final Time
@@ -110,6 +118,12 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       jaco=False, grad_descent=False, conj_grad=False):
   A,B,xv = generate(size)
   x_ini = np.ones(xv.shape)
+  platform = []
+  method = []
+  Size = []
+  iterations = []
+  times = []
+  errors = []
   #generate CPU
   if cuda == True:
     #create CUDA
@@ -117,11 +131,32 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
     x_cuda = OurCuda(x_ini.shape[0],x_ini.shape[1],x_ini,None)
     b_cuda = OurCuda(B.shape[0],B.shape[1],B,None)
     if jaco == True:
-      test(jacobi, xv, a_cuda, b_cuda,x_cuda, N, tol)
+      iter,time,error = test(jacobi, xv, a_cuda, b_cuda,x_cuda, N, tol)
+      platform.append("cuda")
+      method.append("jacobi")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
+
     if grad_descent == True:
-      test(gradient_descent, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
+      iter,time,error = test(gradient_descent, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
+      platform.append("cuda")
+      method.append("GD")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
+
     if conj_grad == True:
-      test(conjugate_gradient, xv, a_cuda, b_cuda,x_cuda, N, tol)
+      iter,time,error = test(conjugate_gradient, xv, a_cuda, b_cuda,x_cuda, N, tol)
+      platform.append("cuda")
+      method.append("CG")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
+
     # delete CUDA
     del(a_cuda)
     del(b_cuda)
@@ -129,27 +164,70 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
   if opencl == True:
   #create opencl
     a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
+
     x_cl = OpenCLArray(x_ini.shape[0],x_ini.shape[1],None,x_ini)
+
     b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
-    if jacobi == True:
-      test(jacobi, xv, a_cl, b_cl,x_cl, N, tol)
+
+    if jaco == True:
+      iter,time,error = test(jacobi, xv, a_cl, b_cl,x_cl, N, tol)
+      platform.append("opencl")
+      method.append("jacobi")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
     if grad_descent == True:
-      test(gradient_descent, xv, a_cl, b_cl, alpha, x_cl, N, tol)
+      iter,time,error = test(gradient_descent, xv, a_cl, b_cl, alpha, x_cl, N, tol)
+      platform.append("opencl")
+      method.append("GD")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
     if conj_grad == True:
-      test(conjugate_gradient, xv, a_cl, b_cl,x_cl, N, tol)
+      iter,time,error = test(conjugate_gradient, xv, a_cl, b_cl,x_cl, N, tol)
+      platform.append("opencl")
+      method.append("CG")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
     # delete openCL
     del(a_cl)
     del(b_cl)
     del(x_cl)
   if numpy == True:
     #exec numpy
-    if jacobi == True:
-      test(jacobi, xv, A, B,x_ini, N, tol)
+    if jaco == True:
+      iter,time,error = test(jacobi, xv, A, B,x_ini, N, tol)
+      platform.append("numpy")
+      method.append("jacobi")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
     if grad_descent == True:
-      test(gradient_descent, xv, A, B, alpha, x_ini, N, tol)
+      iter,time,error = test(gradient_descent, xv, A, B, alpha, x_ini, N, tol)
+      platform.append("numpy")
+      method.append("GD")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
     if conj_grad == True:
-      test(conjugate_gradient, xv, A, B, x_ini, N, tol)
+      iter,time,error = test(conjugate_gradient, xv, A, B, x_ini, N, tol)
+      platform.append("numpy")
+      method.append("CG")
+      Size.append(size)
+      iterations.append(iter)
+      times.append(time)
+      errors.append(error)
   #delete cpu
+  data = { 'platform': platform , 'method': method, 'size': Size,
+  'iterations': iterations, 'time': time, 'error' : errors }
+  dataframe = pd.DataFrame(data)
+  return dataframe
 
   
   
