@@ -82,7 +82,7 @@ def main(Glob_params, plataforms, methods):
       print(str(int(matrix_size/delta)) + '/' + str(n))
       # Number Of trys  
       for tr in range(Glob_params[0]): 
-        print("  LAB: Trying number", tr, end='... \n')
+        print("  LAB: Trying number", tr, end='... ')
         df = runner(matrix_size, 100, 0.001, 0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
@@ -119,7 +119,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       cuda=False,opencl=False,numpy=False,
       jaco=False, grad_descent=False, conj_grad=False):
   A,B,xv = generate(size)
-  x_ini = np.ones(xv.shape)
+  x_ini = np.ones(xv.shape).astype(np.float32)
   platform = []
   method = []
   Size = []
@@ -129,7 +129,6 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
   #generate CPU
   if cuda == True:
     #create CUDA
-    print("cuda")
     a_cuda = OurCuda(A.shape[0],A.shape[1],A,None)
     x_cuda = OurCuda(x_ini.shape[0],x_ini.shape[1],x_ini,None)
     b_cuda = OurCuda(B.shape[0],B.shape[1],B,None)
@@ -144,7 +143,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       errors.append(error)
 
     if grad_descent == True:
-      iter,time,error = test(gradient_descent, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
+      iter,time,error = test(gradient_descent2, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
       platform.append("cuda")
       method.append("GD")
       Size.append(size)
@@ -167,12 +166,9 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
     del(x_cuda)
   if opencl == True:
   #create opencl
-    print("opencl")
     OpenCLArray.set_enviroment()
     a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
-
-    x_cl = OpenCLArray(x_ini.shape[0],x_ini.shape[1],None,x_ini.copy())
-
+    x_cl = OpenCLArray(x_ini.shape[0],x_ini.shape[1],None,x_ini)
     b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
     
 
@@ -186,7 +182,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       times.append(time)
       errors.append(error)
     if grad_descent == True:
-      iter,time,error = test(gradient_descent, xv, a_cl, b_cl, alpha, x_cl, N, tol)
+      iter,time,error = test(gradient_descent2, xv, a_cl, b_cl, alpha, x_cl, N, tol)
       platform.append("opencl")
       method.append("GD")
       Size.append(size)
@@ -207,7 +203,6 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
     del(x_cl)
   if numpy == True:
     #exec numpy
-    print("numpy")
     if jaco == True:
       ja_import("numpy")
       iter,time,error = test(jacobi, xv, A, B,x_ini, N, tol)
@@ -218,7 +213,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       times.append(time)
       errors.append(error)
     if grad_descent == True:
-      iter,time,error = test(gradient_descent, xv, A, B, alpha, x_ini, N, tol)
+      iter,time,error = test(gradient_descent2, xv, A, B, alpha, x_ini, N, tol)
       platform.append("numpy")
       method.append("GD")
       Size.append(size)

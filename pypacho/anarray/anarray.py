@@ -20,7 +20,8 @@ class AnArray:
     def negative(self):
         pass
     def __str__(self):
-        pass
+        return str(self.to_numpy())
+
     def __add__(self,other):             # A + B
         return self.add(other)
     def __iadd__(self, other):          # A += B

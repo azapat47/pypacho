@@ -12,7 +12,8 @@ OpenCLArray.set_enviroment()
 size = 100
 A = np.random.randn(size,size).astype(np.float32)
 B = np.random.randn(size,size).astype(np.float32)
-x = np.random.randn(size,1).astype(np.float32)
+x = np.ones((10,1)).astype(np.float32)
+
 a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
 x_cl = OpenCLArray(x.shape[0],x.shape[1],None,x)
 a_cu = OurCuda(A.shape[0],A.shape[1],A,None)
@@ -22,7 +23,7 @@ x_cu = OurCuda(x.shape[0],x.shape[1],x,None)
 sumcu = a_cu+b_cu
 sumnp = A+B
 
-print(sumnp-sumcu.to_numpy())
+print(x_cl)
 
 
 
