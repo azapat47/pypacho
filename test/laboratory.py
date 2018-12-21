@@ -3,8 +3,11 @@ from pypacho.anarray import AnArray
 from pypacho.cuda import OurCuda
 from pypacho.opencl import OpenCLArray
 from methods.jacobi import jacobi
+from methods.jacobi import import_library as ja_import
 from methods.conjugate_gradient import conjugate_gradient
+from methods.conjugate_gradient import import_library as cg_import
 from methods.gradient_descent import gradient_descent, gradient_descent2
+from methods.gradient_descent import import_library as gd_import
 import numpy as np
 import os
 from time import time
@@ -21,14 +24,13 @@ def generate(size):
     xv = np.random.randn(size,1).astype(np.float32)
     turn_dominant(A)
     B = A @ xv
-    
     return A,B,xv
 
 def turn_dominant(Matriz, delta = 0):
     for i in range(0, Matriz.shape[0]):
       sum = 0
       for j in range(0,Matriz.shape[1]):
-        sum += Matriz[i][j]
+        sum += abs(Matriz[i][j])
       Matriz[i][i] = sum + delta
 
       
@@ -70,7 +72,7 @@ def main(Glob_params, plataforms, methods):
     fat_panda = pd.DataFrame(columns=["platform", "method", "size", "iterations", "time", "error" ])
     fat_panda["size"] = fat_panda["size"].astype(int)
     fat_panda["iterations"] = fat_panda["iterations"].astype(int)
-     fat_panda["iterations"] = fat_panda["time"].astype(float)
+    fat_panda["iterations"] = fat_panda["time"].astype(float)
     fat_panda["error"] = fat_panda["error"].astype(float)
     delta = Glob_params[2]
     n = Glob_params[1]
@@ -85,7 +87,7 @@ def main(Glob_params, plataforms, methods):
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
-    print(fat_panda.info())
+    print(fat_panda)
 
 
         
@@ -127,10 +129,12 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
   #generate CPU
   if cuda == True:
     #create CUDA
+    print("cuda")
     a_cuda = OurCuda(A.shape[0],A.shape[1],A,None)
     x_cuda = OurCuda(x_ini.shape[0],x_ini.shape[1],x_ini,None)
     b_cuda = OurCuda(B.shape[0],B.shape[1],B,None)
     if jaco == True:
+      ja_import("pypacho")
       iter,time,error = test(jacobi, xv, a_cuda, b_cuda,x_cuda, N, tol)
       platform.append("cuda")
       method.append("jacobi")
@@ -163,13 +167,17 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
     del(x_cuda)
   if opencl == True:
   #create opencl
+    print("opencl")
+    OpenCLArray.set_enviroment()
     a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
 
-    x_cl = OpenCLArray(x_ini.shape[0],x_ini.shape[1],None,x_ini)
+    x_cl = OpenCLArray(x_ini.shape[0],x_ini.shape[1],None,x_ini.copy())
 
     b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
+    
 
     if jaco == True:
+      ja_import("pypacho")
       iter,time,error = test(jacobi, xv, a_cl, b_cl,x_cl, N, tol)
       platform.append("opencl")
       method.append("jacobi")
@@ -199,7 +207,9 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
     del(x_cl)
   if numpy == True:
     #exec numpy
+    print("numpy")
     if jaco == True:
+      ja_import("numpy")
       iter,time,error = test(jacobi, xv, A, B,x_ini, N, tol)
       platform.append("numpy")
       method.append("jacobi")
@@ -225,13 +235,15 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       errors.append(error)
   #delete cpu
   data = { 'platform': platform , 'method': method, 'size': Size,
-  'iterations': iterations, 'time': time, 'error' : errors }
+  'iterations': iterations, 'time': times, 'error' : errors }
   dataframe = pd.DataFrame(data)
   return dataframe
 
   
   
 #Example of call from console: $ python lab.py "[1,1,10]" "[1,0,0]" "[1,0,0]"
+
 if __name__ == '__main__':
     if(len(sys.argv)!=4): usage(0)
+    os.environ["PYOPENCL_CTX"]='0'
     main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]))

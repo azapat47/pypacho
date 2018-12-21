@@ -200,3 +200,12 @@ class OurCuda(AnArray,GpuArray):
     def to_numpy(self):
         mat = self.Matrix.get()
         return mat
+    
+    def norm(self):
+        at = self.transpose()
+        n2 = []
+        if(self.n != 1):
+            n2 = at @ self
+        else:
+            n2 = self @ at
+        return float(np.sqrt(n2.to_numpy()))

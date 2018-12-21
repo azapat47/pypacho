@@ -1,5 +1,5 @@
 import helper
-
+from numpy import ndarray
 np = None
 
 def import_library(library = 'pypacho'):
@@ -11,23 +11,19 @@ def import_library(library = 'pypacho'):
         import numpy
         np = numpy
 
-import numpy as np
 
-def norm(x):
-    d = x.transpose()
-    cross = d @ x
-    return np.sqrt(float(cross))
-
-def jacobi(A,b,x0,N=100,tol=0.005):    
+def jacobi(A,b,x0,N=100,tol=0.005):
     x = x0
     disp =  tol+1 
-    D = A.diag()
-    diagflat = D.diagflat()
+    D = np.diag(A)
+    if isinstance(D,ndarray):
+        D = D.reshape(x.shape)
+    diagflat = np.diagflat(D)
     R = A - diagflat
     i = 0
     while disp > tol and i < N:
         xn = (b - R @ x) / D
-        disp = norm(xn - x) / norm(xn)
+        disp = np.linalg.norm(xn - x) / np.linalg.norm(xn)
         x = xn
         i +=1
     return x,i

@@ -129,18 +129,18 @@ class OpenCLArray(AnArray,GpuArray):
         return OpenCLArray(self.m,self.n,c_buf,None)
 
     def diag(self):
-        C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
+        C = numpy.zeros((self.m), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         self.prg.diag(self.queue, C.shape, self.block_size,
-                           self.buf, c_buf, numpy.uint32(self.n))
-        return OpenCLArray(self.m,self.n,c_buf,None)
+                           self.buf, c_buf, numpy.uint32(self.m))
+        return OpenCLArray(1,self.m,c_buf,None)
 
     def diagflat(self):
-        C = numpy.zeros((self.m*self.n), dtype=numpy.float32)
+        C = numpy.zeros((self.n*self.n), dtype=numpy.float32)
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, C.nbytes)
         self.prg.diagflat(self.queue, C.shape, self.block_size,
                            self.buf, c_buf, numpy.uint32(self.n))
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.n,self.n,c_buf,None)
     
     def norm(self):
         at = self.transpose()

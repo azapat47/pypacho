@@ -92,5 +92,7 @@ __kernel void diag(__global float *a, __global float *b, int a_size)
 __kernel void diagflat(__global float *a, __global float *b, int a_size)
 {
   int gid = get_global_id(0);
-  a[gid*a_size + gid] = b[gid];
+  if(gid < a_size){
+    b[gid*a_size + gid] = a[gid];
+  }
 }
