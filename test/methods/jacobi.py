@@ -26,4 +26,4 @@ def jacobi(A,b,x0,N=100,tol=0.005):
         disp = np.linalg.norm(xn - x) / np.linalg.norm(xn)
         x = xn
         i +=1
-    return x,i
+    return x,i,disp
