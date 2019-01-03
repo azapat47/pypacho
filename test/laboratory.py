@@ -48,7 +48,7 @@ def usage(ec=None):
 #Arguments: Iterable Glob_params [trys per size ,initial size, delta, how many sizes will be tested, iteretions per method,tolerance] The number of trys, the size of the matrix and the delta of growth. The first matrix is always with a size of delta. 
 #           Iterable plataforms  [cuda, opencl, numpy] Plataforms, boolean values, in that order.
 #           Iterable Methods     [jacobi, GD, CG] Methods, boolean values, in that order.
-#Example of call from console: $ python lab.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]"
+#Example of call from console: $ optirun python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]"
 #Modulo 1
 def main(Glob_params, plataforms, methods):
     #Params check
