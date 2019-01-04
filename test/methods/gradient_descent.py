@@ -11,12 +11,7 @@ def import_library(library = 'pypacho'):
         import numpy
         np = numpy
 
-import numpy as np
 
-def norm(x):
-    d = x.transpose()
-    cross = d @ x
-    return np.sqrt(float(cross))
 
 def gradient_descent(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       
@@ -45,12 +40,12 @@ def gradient_descent2(A,b,alpha,x0,N=25,tol=0.01):
         grandn = A.transpose() @ (A@xn - b)
         grandn_m_0 = grandn - grad
         alpha = float((xn_m_x.transpose() @ grandn_m_0) / (grandn_m_0.transpose() @ grandn_m_0)) 
-        error = norm(x - xn) / norm(xn)
+        error = np.linalg.norm(xn - x) / np.linalg.norm(xn)
         x = xn
         grad = grandn
         iter = iter + 1 
     if (iter > N):
         print("Se ha excedido el número de iteraciones. Procedimiento FALLIDO")
-        return x,iter
+        return x,iter,error
     else:
-        return x,iter
+        return x,iter,error
