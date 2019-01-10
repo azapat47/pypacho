@@ -12,7 +12,7 @@ OpenCLArray.set_enviroment()
 size = 100
 A = np.random.randn(size,size).astype(np.float32)
 B = np.random.randn(size,size).astype(np.float32)
-x = np.ones((10,1)).astype(np.float32)
+x = np.ones((size,1)).astype(np.float32)
 
 a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
 x_cl = OpenCLArray(x.shape[0],x.shape[1],None,x)

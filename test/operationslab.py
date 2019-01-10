@@ -10,9 +10,15 @@ import pandas as pd
 import json
 import sys
 
+np = None
+
 def generate(size_n,size_m):
     A = numpy.random.randn(size_n,size_m).astype(numpy.float32)
-    turn_dominant(A)
+    #turn_dominant(A)
+    return A
+
+def generate_a(size_n,size_m):
+    A = numpy.random.randn(size_n,size_m).astype(numpy.float32)
     return A
 
 def turn_dominant(Matriz, delta = 0):
@@ -37,7 +43,7 @@ def main(Glob_params, plataforms, methods):
     if(not isinstance(Glob_params, collections.Iterable) or not isinstance(plataforms, collections.Iterable) or not isinstance(methods, collections.Iterable)):
       print("Bad type in any arguments. Use Lists")
       usage(1)
-    if(len(Glob_params) != 5 or len(plataforms) != 3 or len(methods)!=7):
+    if(len(Glob_params) != 7 or len(plataforms) != 3 or len(methods)!=7):
       print("Bad number of elements in any param")
       usage(1)
     integrity_glob_params = all(isinstance(i, int)
@@ -52,21 +58,48 @@ def main(Glob_params, plataforms, methods):
       usage(1) 
     print("LAB: ***Starting***")
     # Creationg pandas DataFrame
-    fat_panda = pd.DataFrame(columns=["platform", "method", "size_a", "size_b", "time"])
-    fat_panda["size_a"] = fat_panda["size_a"].astype(int)
-    fat_panda["size_b"] = fat_panda["size_b"].astype(int)
-    ini_size_a = Glob_params[1]
-    ini_size_b = Glob_params[2]
-    delta = Glob_params[3]
-    n = Glob_params[4]
+    fat_panda = pd.DataFrame(columns=["platform", "method", "size_a_n", "size_a_m", "size_b_n", "size_b_m", "time"])
+    fat_panda["size_a_n"] = fat_panda["size_a_n"].astype(int)
+    fat_panda["size_a_m"] = fat_panda["size_a_m"].astype(int)
+    fat_panda["size_b_n"] = fat_panda["size_b_n"].astype(int)
+    fat_panda["size_b_m"] = fat_panda["size_b_m"].astype(int)
+    ini_size_a_n = Glob_params[1]
+    ini_size_a_m = Glob_params[2]
+    ini_size_b_n = Glob_params[3]
+    ini_size_b_m = Glob_params[4]
+    if(methods[2] == 1 and ini_size_a_m != ini_size_b_n):
+      print("Incompatible sizes for a dot operation")
+      usage(1) 
+    delta = Glob_params[5]
+    n = Glob_params[6]
+    an = 0
+    am = 0
+    bn = 0
+    bm = 0
     #For every matrix size_a
-    for matrix_size in range(ini_size_a, ini_size_a+(delta*n), delta): 
+    for matrix_size in range(ini_size_a_m, ini_size_a_m+(delta*n), delta): 
       print("LAB: Matrix size", matrix_size, end=" | ")
       print(str(int(matrix_size/delta)) + '/' + str(n))
       # Number Of trys  
+      if(ini_size_a_n == 1):
+        an = 1
+      else:
+        an = matrix_size
+      if(ini_size_a_m == 1):
+        am = 1
+      else:
+        am = matrix_size
+      if(ini_size_b_n == 1):
+        bn = 1
+      else:
+        bn = matrix_size
+      if(ini_size_b_m == 1):
+        bm = 1
+      else:
+        bm = matrix_size
       for tr in range(Glob_params[0]): 
         print("  LAB: Trying number", tr, end='... ')
-        df = runner(matrix_size, matrix_size, matrix_size, matrix_size, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], methods[3],  methods[4],  methods[5],  methods[6])
+        df = runner(an, am, bn, bm, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], methods[3],  methods[4],  methods[5],  methods[6])
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
@@ -85,16 +118,26 @@ def test(method, *args):
     # Final Time
     return t
 
-def runner(size_n_a,size_m_a,size_n_b,size_m_b,
+def runner(an,am,bn,bm,
       cuda=False,opencl=False,numpy=False,
       suma=False, resta=False, punto=False, divi=False,
       multi=False, transp=False, norma=False):
-  A = generate(size_n_a,size_m_a)
-  B = generate(size_n_b,size_m_b)
+  global np
+  if(an == 1 or am == 1):
+    A = generate_a(an,am)
+  else:
+    A = generate(an,am)
+  if(bn == 1 or bm == 1):
+    B = generate_a(bn,bm)
+  else:
+    B = generate(bn,bm)
+  x = generate_a(an,1)
   platform = []
   method = []
-  Size = []
-  Size_b = [] 
+  Size_a_n = []
+  Size_a_m = []
+  Size_b_n = [] 
+  Size_b_m = []
   times = []
   #generate CPU
   def add(A, B):
@@ -112,177 +155,224 @@ def runner(size_n_a,size_m_a,size_n_b,size_m_b,
   def norm(A):
     return np.linalg.norm(A)
   if cuda == True:
+    import pypacho
     np = pypacho
     #create CUDA
     a_cuda = OurCuda(A.shape[0],A.shape[1],A,None)
     b_cuda = OurCuda(B.shape[0],B.shape[1],B,None)
+    x_cuda = OurCuda(x.shape[0],x.shape[1],x,None)
     if suma == True:
       time = test(add, a_cuda, b_cuda)
       platform.append("cuda")
       method.append("suma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if resta == True:
-      time = test(add, a_cuda, b_cuda)
+      time = test(sub, a_cuda, b_cuda)
       platform.append("cuda")
       method.append("resta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if punto == True:
-      time = test(add, a_cuda, b_cuda)
+      time = test(dot, a_cuda, b_cuda)
       platform.append("cuda")
       method.append("punto")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)  
     if divi == True:
-      time = test(add, a_cuda, b_cuda)
+      time = test(div, a_cuda, b_cuda)
       platform.append("cuda")
       method.append("division")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if multi == True:
-      time = test(add, a_cuda, b_cuda)
+      time = test(mul, a_cuda, b_cuda)
       platform.append("cuda")
       method.append("multiplicacion")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if transp == True:
-      time = test(add, a_cuda, b_cuda)
+      time = test(transpose, a_cuda)
       platform.append("cuda")
       method.append("transpuesta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
-    if norm == True:
-      time = test(norma, a_cuda, b_cuda)
+    if norma == True:
+      time = test(norm, x_cuda)
       platform.append("cuda")
       method.append("norma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     # delete CUDA
     del(a_cuda)
     del(b_cuda)
   if opencl == True:
+    import pypacho
     np = pypacho
   #create opencl
     OpenCLArray.set_enviroment()
     a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
     b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
+    x_cl = OpenCLArray(x.shape[0],x.shape[1],None,x)
 
     if suma == True:
       time = test(add, a_cl, b_cl)
       platform.append("cl")
       method.append("suma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if resta == True:
-      time = test(add, a_cl, b_cl)
+      time = test(sub, a_cl, b_cl)
       platform.append("cl")
       method.append("resta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if punto == True:
-      time = test(add, a_cl, b_cl)
+      time = test(dot, a_cl, b_cl)
       platform.append("cl")
       method.append("punto")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)  
     if divi == True:
-      time = test(add, a_cl, b_cl)
+      time = test(div, a_cl, b_cl)
       platform.append("cl")
       method.append("division")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if multi == True:
-      time = test(add, a_cl, b_cl)
+      time = test(mul, a_cl, b_cl)
       platform.append("cl")
       method.append("multiplicacion")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if transp == True:
-      time = test(add, a_cl, b_cl)
+      time = test(transpose, a_cl)
       platform.append("cl")
       method.append("transpuesta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
-    if norm == True:
-      time = test(norma, a_cl, b_cl)
+    if norma == True:
+      time = test(norm, x_cl)
       platform.append("cl")
       method.append("norma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     # delete opencl
     del(a_cl)
     del(b_cl)
     
   if numpy == True:
+    import numpy
     np = numpy
     #exec numpy
     if suma == True:
       time = test(add, A, B)
       platform.append("numpy")
       method.append("suma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if resta == True:
-      time = test(add, A, B)
+      time = test(sub, A, B)
       platform.append("numpy")
       method.append("resta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if punto == True:
-      time = test(add, A, B)
+      time = test(dot, A, B)
       platform.append("numpy")
       method.append("punto")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)  
     if divi == True:
-      time = test(add, A, B)
+      time = test(div, A, B)
       platform.append("numpy")
       method.append("division")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if multi == True:
-      time = test(add, A, B)
+      time = test(mul, A, B)
       platform.append("numpy")
       method.append("multiplicacion")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
     if transp == True:
-      time = test(add, A, B)
+      time = test(transpose, A)
       platform.append("numpy")
       method.append("transpuesta")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
-    if norm == True:
-      time = test(norma, A, B)
+    if norma == True:
+      time = test(norm, x)
       platform.append("numpy")
       method.append("norma")
-      Size.append(size_n_a)
-      Size_b.append(size_n_b)
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(bn)
+      Size_b_m.append(bm)
       times.append(time)
   #delete cpu
-  data = { 'platform': platform , 'method': method, 'size_a': Size,
-  'size_b': Size_b, 'time': times,}
+  data = { 'platform': platform , 'method': method, 'size_a_n': Size_a_n,
+  'size_a_m': Size_a_m, 'size_b_n': Size_b_n, 'size_b_m': Size_b_m,'time': times,}
   dataframe = pd.DataFrame(data)
   return dataframe
 

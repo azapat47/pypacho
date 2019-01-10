@@ -20,8 +20,8 @@ import sys
 
 # Modulo 2
 def generate(size):
-    A = np.random.randn(size,size).astype(np.float32)
-    xv = np.random.randn(size,1).astype(np.float32)
+    A = np.random.randn(size,size).astype(np.float64)
+    xv = np.random.randn(size,1).astype(np.float64)
     turn_dominant(A)
     B = A @ xv
     return A,B,xv

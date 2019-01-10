@@ -1,1 +1,1 @@
-from .kernel import get_path
+from .kernel import get_path,get_path_d

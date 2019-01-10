@@ -8,18 +8,36 @@ import numpy as np
 class OurCuda(AnArray,GpuArray):
     kernel_code_template = None
     kernelBin = None
+    kernel_code_template_d = None
+    kernelBin_d = None
+    doble = False
 
     #Se tiene que cambiar a self, n, m, Matrix, host=None
     def __init__(self,n,m,Matrix = None,GpuMatrix = None):
-
+        #simple
         with open(kernel.get_path()) as file:
                 self.kernel_code_template = file.read()
         self.kernelBin = compiler.SourceModule(self.kernel_code_template)
+        #doble
+        with open(kernel.get_path_d()) as file:
+                self.kernel_code_template_d = file.read()
+        self.kernelBin_d = compiler.SourceModule(self.kernel_code_template_d)
+
         self.n = n
         self.m = m
         if GpuMatrix is None:
+            if Matrix.dtype == 'float64':
+                self.doble = True
+            else:
+                self.doble = False
+
             self.Matrix=gpuarray.to_gpu(Matrix)
         else:
+            if GpuMatrix.dtype == 'float64':
+                self.doble = True
+            else:
+                self.doble = False
+
             self.Matrix = GpuMatrix
     
     def __del__(self):
@@ -123,9 +141,13 @@ class OurCuda(AnArray,GpuArray):
     #falta negative y positive
 
     def dot(self, cudita):
-        Cross = self.kernelBin.get_function("Cross")
+        if self.doble:
+            Cross = self.kernelBin_d.get_function("Cross")
+            x = np.zeros((self.n, cudita.m),dtype=np.float64)
+        else:
+            Cross = self.kernelBin.get_function("Cross")
+            x = np.zeros((self.n, cudita.m),dtype=np.float32)
         #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
-        x = np.zeros((self.n, cudita.m),dtype=np.float32)
         c_gpu = gpuarray.to_gpu(x)
         MATRIX_SIZE = self.n
         if(MATRIX_SIZE > 32):
@@ -157,9 +179,13 @@ class OurCuda(AnArray,GpuArray):
         return OurCuda(self.n,self.m,None,b_gpu)
     
     def transpose(self):
-        Transpose = self.kernelBin.get_function("Transpose")
+        if self.doble:
+            Transpose = self.kernelBin_d.get_function("Transpose")
+            x = np.zeros((self.m, self.n),dtype=np.float64)
+        else:
+            Transpose = self.kernelBin.get_function("Transpose")
+            x = np.zeros((self.m, self.n),dtype=np.float32)
         MATRIX_SIZE = self.n
-        x = np.zeros((self.m, self.n),dtype=np.float32)
         b_gpu = gpuarray.to_gpu(x)
         if(MATRIX_SIZE > 32):
             grid_size = (MATRIX_SIZE//32) + 1
@@ -169,28 +195,36 @@ class OurCuda(AnArray,GpuArray):
         return OurCuda(self.m,self.n,None,b_gpu)
 
     def diag(self):
-        MATRIX_SIZE = self.n
-        #b_gpu = gpuarray.empty((self.n, 1), np.float32)
-        x = np.zeros((self.n,1),dtype=np.float32)
+        if self.doble:
+            Diag = self.kernelBin_d.get_function("Diag")
+            x = np.zeros((self.n,1),dtype=np.float64)
+        else:
+            Diag = self.kernelBin.get_function("Diag")
+            x = np.zeros((self.n,1),dtype=np.float32)
+        
         b_gpu = gpuarray.to_gpu(x)
+        MATRIX_SIZE = self.n
         if(MATRIX_SIZE > 1024):
             grid_size = (MATRIX_SIZE//1024) + 1
         else:
             grid_size = 1
-        Diag = self.kernelBin.get_function("Diag")
         Diag(np.int32(MATRIX_SIZE), self.Matrix, b_gpu ,block = (1, 1024, 1), grid = (1,grid_size,1))
         return OurCuda(1,MATRIX_SIZE,None,b_gpu)
 
     def diagflat(self):
         MATRIX_SIZE = self.m
-        x = np.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=np.float32)
+        if self.doble:
+            DiagFlat = self.kernelBin_d.get_function("DiagFlat")
+            x = np.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=np.float64)
+        else:
+            DiagFlat = self.kernelBin.get_function("DiagFlat")
+            x = np.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=np.float32)
         #b_gpu = gpuarray.empty((MATRIX_SIZE, MATRIX_SIZE), np.float32)
         b_gpu = gpuarray.to_gpu(x)
         if(MATRIX_SIZE > 1024):
             grid_size = (MATRIX_SIZE//1024) + 1
         else:
             grid_size = 1
-        DiagFlat = self.kernelBin.get_function("DiagFlat")
         DiagFlat(np.int32(MATRIX_SIZE), self.Matrix, b_gpu ,block = (1, 1024, 1), grid = (1,grid_size,1))
         return OurCuda(MATRIX_SIZE,MATRIX_SIZE,None,b_gpu)
 
