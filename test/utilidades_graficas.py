@@ -4,15 +4,14 @@ import numpy as np
 
 
 def graficar(tabla, metodo='jacobi', x='tamaño', y='tiempo_promedio', plataformas=['cuda', 'opencl', 'numpy']):
-    colores = ['r', 'g', 'b']
+    cmap = plt.cm.get_cmap('hsv', len(plataformas) + 1)
     
     for indice, plataforma in enumerate(plataformas):
-        color = colores[indice]
         tabla_plataforma = tabla.loc[tabla['plataforma'] == plataforma]
         tabla_metodo = tabla_plataforma.loc[tabla_plataforma['metodo'] == metodo]
         x_plataforma = tabla_metodo[x].values
         y_plataforma = tabla_metodo[y].values
-        plt.plot(x_plataforma, y_plataforma, color=color, label=plataforma)
+        plt.plot(x_plataforma, y_plataforma, label=plataforma, color=cmap(indice))
     plt.title(y + ' vs ' + x + ' en ' + metodo)
     plt.xlabel(x)
     plt.ylabel(y)
