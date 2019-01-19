@@ -53,7 +53,7 @@ class OpenCLArray(AnArray,GpuArray):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=self.nbytes)
         grid = (self.m *self.n,)
         if self.dtype == numpy.float32:
-            cl_function = self.prg.double_transpose
+            cl_function = self.prg.transpose
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_transpose
             
@@ -66,7 +66,7 @@ class OpenCLArray(AnArray,GpuArray):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
         grid = (self.m *self.n,)
         if self.dtype == numpy.float32:
-            cl_function = self.prg.double_add
+            cl_function = self.prg.add
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_add
 
@@ -93,11 +93,12 @@ class OpenCLArray(AnArray,GpuArray):
         if(not isinstance(B,OpenCLArray)):
             if self.dtype == numpy.float32:
                 cl_function = self.prg.scalar_mult
+                cl_function(self.queue, grid, self.block_size,
+                                    self.buf,numpy.float32(B),c_buf)
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.double_scalar_mult
-
-            cl_function(self.queue, grid, self.block_size,
-                                self.buf,numpy.float32(B),c_buf)
+                cl_function(self.queue, grid, self.block_size,
+                                    self.buf,numpy.float64(B),c_buf)
         else:
             if self.dtype == numpy.float32:
                 cl_function = self.prg.multiply
