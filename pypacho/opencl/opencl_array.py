@@ -59,7 +59,7 @@ class OpenCLArray(AnArray,GpuArray):
             
         cl_function(self.queue, grid, self.block_size,
                            c_buf, self.buf, numpy.uint32(self.m), numpy.uint32(self.n))
-        return OpenCLArray(self.n,self.m,c_buf,None)
+        return OpenCLArray(self.n,self.m,c_buf,None,self.dtype)
 
 
     def add(self,B):
@@ -72,7 +72,7 @@ class OpenCLArray(AnArray,GpuArray):
 
         cl_function(self.queue, grid, self.block_size,
                            self.buf, B.buf,c_buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
     def subtract(self,B):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
@@ -82,9 +82,9 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_subtract
 
-        cl_function(self.queue, C.shape, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            self.buf, B.buf,c_buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
     def multiply(self,B):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
@@ -96,7 +96,7 @@ class OpenCLArray(AnArray,GpuArray):
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.double_scalar_mult
 
-            cl_function(self.queue, C.shape, self.block_size,
+            cl_function(self.queue, grid, self.block_size,
                                 self.buf,numpy.float32(B),c_buf)
         else:
             if self.dtype == numpy.float32:
@@ -104,9 +104,9 @@ class OpenCLArray(AnArray,GpuArray):
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.double_multiply
 
-            cl_function(self.queue, C.shape, self.block_size,
+            cl_function(self.queue, grid, self.block_size,
                                self.buf, B.buf,c_buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
     def divide(self,B):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
@@ -116,9 +116,9 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_divide
         
-        cl_function(self.queue, C.shape, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            self.buf, B.buf,c_buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
     def dot(self,B):        
         if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
@@ -132,11 +132,11 @@ class OpenCLArray(AnArray,GpuArray):
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.double_dot_matrix
 
-            cl_function(self.queue, C.shape, self.block_size,self.buf, B.buf, c_buf,
+            cl_function(self.queue, grid, self.block_size,self.buf, B.buf, c_buf,
                          numpy.uint32(self.m),
                          numpy.uint32(self.n),
                          numpy.uint32(B.n))
-            return OpenCLArray(self.m,B.n,c_buf,None)
+            return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
 
     def negative(self):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
@@ -146,9 +146,9 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_negative
         
-        cl_function(self.queue, C.shape, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            c_buf, self.buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
 
     def sqrt(self):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
@@ -157,9 +157,9 @@ class OpenCLArray(AnArray,GpuArray):
             cl_function = self.prg.sqrt_
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_sqrt_
-        cl_function(self.queue, C.shape, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            c_buf, self.buf)
-        return OpenCLArray(self.m,self.n,c_buf,None)
+        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
 
     def diag(self):
         nbytes = self.m * self.dtype.itemsize
@@ -170,9 +170,9 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_diag
         
-        cl_function(self.queue, C.shape, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            self.buf, c_buf, numpy.uint32(self.m))
-        return OpenCLArray(1,self.m,c_buf,None)
+        return OpenCLArray(1,self.m,c_buf,None,self.dtype)
 
     def diagflat(self):
         nbytes = self.n * self.n * self.dtype.itemsize
@@ -183,9 +183,9 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_diagflat
 
-        self.prg.diagflat(self.queue, C.shape, self.block_size,
+        self.prg.diagflat(self.queue, grid, self.block_size,
                            self.buf, c_buf, numpy.uint32(self.n))
-        return OpenCLArray(self.n,self.n,c_buf,None)
+        return OpenCLArray(self.n,self.n,c_buf,None,self.dtype)
     
     def norm(self):
         at = self.transpose()
