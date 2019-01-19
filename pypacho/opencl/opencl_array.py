@@ -184,7 +184,7 @@ class OpenCLArray(AnArray,GpuArray):
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_diagflat
 
-        self.prg.diagflat(self.queue, grid, self.block_size,
+        cl_function(self.queue, grid, self.block_size,
                            self.buf, c_buf, numpy.uint32(self.n))
         return OpenCLArray(self.n,self.n,c_buf,None,self.dtype)
     

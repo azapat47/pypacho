@@ -126,7 +126,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       cuda=False,opencl=False,numpy=False,
       jaco=False, grad_descent=False, conj_grad=False):
   A,B,xv = generate(size)
-  x_ini = np.ones(xv.shape).astype(np.float32)
+  x_ini = np.ones(xv.shape).astype(np.float64)
   platform = []
   method = []
   Size = []

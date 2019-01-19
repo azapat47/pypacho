@@ -33,7 +33,7 @@ def usage(ec=None):
   print("Arguments: Iterable of Glob_params [trys per size ,initial_size_a, initial_size_b, delta, how many sizes will be tested]") 
   print("           Iterable of plataforms  [cuda, opencl, numpy] Plataforms, boolean value, in that order.")
   print("           Iterable of Methods     [+, -, @, /,  *, transp, norm] Methods, boolean value, in that order.")
-  print('Example of call from console: $ optirun python3 operationslab.py "[1,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"')
+  print('Example of call from console: $ optirun python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"')
   if(ec is not None):
     exit(ec)
     
