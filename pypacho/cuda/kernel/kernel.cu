@@ -140,7 +140,7 @@
             b[ty + (tx*sizen)] =  a[tx + (ty*sizem)];
         }
     }
-    
+
     __global__ void neg(int size, float * a, float *b)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;

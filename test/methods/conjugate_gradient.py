@@ -20,10 +20,11 @@ def conjugate_gradient(A,b,x0,N=25,tol=0.001):
     error = tol + 1
     while (error > tol)&(iter <= N):
         q = A @ s
-        alpha = float((s.transpose() @ r)/(s.transpose() @ q))
+        S_t = s.transpose()
+        alpha = float((S_t @ r)/(S_t @ q))
         xn = x + alpha*s
         r = b - (A @ xn)
-        beta = -float((r.transpose() @ q)/(s.transpose() @ q))
+        beta = -float((r.transpose() @ q)/(S_t @ q))
         #print(beta)
         s = r + beta*s
         iter = iter + 1

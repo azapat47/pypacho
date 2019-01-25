@@ -33,11 +33,12 @@ def gradient_descent2(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       
     error = tol+1  
     x = x0
-    grad = A.transpose() @ (A@x - b)
+    A_t = A.transpose()
+    grad = A_t @ (A@x - b)
     while (error > tol)&(iter <= N):
         xn = x - alpha*grad
         xn_m_x = xn -x
-        grandn = A.transpose() @ (A@xn - b)
+        grandn = A_t @ (A@xn - b)
         grandn_m_0 = grandn - grad
         alpha = float((xn_m_x.transpose() @ grandn_m_0) / (grandn_m_0.transpose() @ grandn_m_0)) 
         error = np.linalg.norm(xn - x) / np.linalg.norm(xn)
