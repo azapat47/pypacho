@@ -1,108 +1,131 @@
-    __global__ void Suma(int size, double *a, double *b, double *c)
+    __global__ void Suma(int t_a, int t_b, int size_n, int size_m, double *a, double *b, double *c)
     {
         const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            c[idx + (idy*size)] =  a[idx + (idy*size)] + b[idx + (idy*size)];
-        }
-    }
-    
-    __global__ void ISuma(int size, double *a, double *b)
-    {
-        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
-        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            a[idx + (idy*size)] =  a[idx + (idy*size)] + b[idx + (idy*size)];
-        }
-    }
-
-    __global__ void Resta(int size, double *a, double *b, double *c)
-    {
-        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
-        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            c[idx + (idy*size)] =  a[idx + (idy*size)] - b[idx + (idy*size)];
-        }
-    } 
-    
-    __global__ void IResta(int size, double *a, double *b)
-    {
-        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
-        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            a[idx + (idy*size)] =  a[idx + (idy*size)] - b[idx + (idy*size)];
-        }
-    }
-    
-
-    __global__ void Multi(int size, double *a, double *b, double *c)
-    {
-        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
-        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            c[idx + (idy*size)] =  a[idx + (idy*size)] * b[idx + (idy*size)];
+        int ida = 0;
+        int idb = 0;
+        if(idx < size_m && idy < size_n){
+            if(t_a == 0){
+                ida = idx + (idy*size_m); 
+            }
+            else{
+                ida = idy + (idx*size_n);
+            }
+            if(t_b == 0){
+                idb = idx + (idy*size_m);
+            }
+            else{
+                idb = idy + (idx*size_n); 
+            }
+            c[idx + (idy*size_m)] =  a[ida] + b[idb];
         }
     }
 
-    __global__ void RMulti(int size,  double b, double *a, double *c)
+    __global__ void Resta(int t_a, int t_b, int size_n, int size_m, double *a, double *b, double *c)
     {
         const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            c[idx + (idy*size)] =  a[idx + (idy*size)] * b;
+        int ida = 0;
+        int idb = 0;
+        if(idx < size_m && idy < size_n){
+            if(t_a == 0){
+                ida = idx + (idy*size_m); 
+            }
+            else{
+                ida = idy + (idx*size_n);
+            }
+            if(t_b == 0){
+                idb = idx + (idy*size_m);
+            }
+            else{
+                idb = idy + (idx*size_n); 
+            }
+            c[idx + (idy*size_m)] =  a[ida] - b[idb];
         }
-    }
-    
-    __global__ void IMulti(int size, double *a, double *b)
+    }   
+
+    __global__ void Multi(int t_a, int t_b, int size_n, int size_m, double *a, double *b, double *c)
     {
         const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            a[idx + (idy*size)] =  a[idx + (idy*size)] * b[idx + (idy*size)];
+        int ida = 0;
+        int idb = 0;
+        if(idx < size_m && idy < size_n){
+            if(t_a == 0){
+                ida = idx + (idy*size_m); 
+            }
+            else{
+                ida = idy + (idx*size_n);
+            }
+            if(t_b == 0){
+                idb = idx + (idy*size_m);
+            }
+            else{
+                idb = idy + (idx*size_n); 
+            }
+            c[idx + (idy*size_m)] =  a[ida] * b[idb];
         }
     }
 
-    __global__ void Divide(int size, double *a, double *b, double *c)
+    __global__ void RMulti(int t_a, int t_b, int size_n, int size_m, double b, double *a, double *c)
     {
         const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            c[idx + (idy*size)] =  a[idx + (idy*size)] / b[idx + (idy*size)];
-        }
-    }
-    
-    __global__ void IDivide(int size, double *a, double *b)
-    {
-        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
-        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
-        if(idx < size && idy < size){
-            a[idx + (idy*size)] =  a[idx + (idy*size)] / b[idx + (idy*size)];
+        if(idx < size_m && idy < size_n){
+            c[idx + (idy*size_m)] =  a[idx + (idy*size_m)] * b;
         }
     }
 
-    __global__ void Cross(int sizean, int sizeam, int sizebm,double *a, double *b, double *c)
+    __global__ void Divide(int t_a, int t_b, int size_n, int size_m, double *a, double *b, double *c)
+    {
+        const uint idx = threadIdx.x + blockDim.x * blockIdx.x;
+        const uint idy = threadIdx.y + blockDim.y * blockIdx.y;
+        int ida = 0;
+        int idb = 0;
+        if(idx < size_m && idy < size_n){
+            if(t_a == 0){
+                ida = idx + (idy*size_m); 
+            }
+            else{
+                ida = idy + (idx*size_n);
+            }
+            if(t_b == 0){
+                idb = idx + (idy*size_m);
+            }
+            else{
+                idb = idy + (idx*size_n); 
+            }
+            c[idx + (idy*size_m)] =  a[ida] / b[idb];
+        }
+    }
+
+    __global__ void Cross(int t_a, int t_b, int sizean, int sizeam, int sizebm,double *a, double *b, double *c)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
+        int ida = 0;
+        int idb = 0;
         if(tx < sizebm && ty < sizean){
             double Pvalue = 0;
             for (int k = 0; k < sizeam; ++k) {
-                double Aelement = a[ty * sizeam + k];
-                double Belement = b[k * sizebm + tx];
+                if(t_a == 0){
+                    ida = ty * sizeam + k; 
+                }
+                else{
+                    ida = k * sizean + ty;
+                }
+                if(t_b == 0){
+                    idb = k * sizebm + tx;
+                }
+                else{
+                    idb = tx * sizeam + k; 
+                }
+                double Aelement = a[ida];
+                double Belement = b[idb];
                 Pvalue += Aelement * Belement;
             }
             c[ty * sizebm + tx] = Pvalue;
         }
-    }
-
-    __global__ void multiply(int n, int m, int p, double *a, double *b, double *c)
-    {
-        int idx = p*threadIdx.x + threadIdx.y;
-
-        c[idx] = 0.0;
-        for(int k=0; k<m; k++)
-           c[idx] += a[m*threadIdx.x+k]
-                    *b[threadIdx.y+k*p];
     }
 
     // dominante modificando la matriz original
@@ -140,22 +163,22 @@
             b[ty + (tx*sizen)] =  a[tx + (ty*sizem)];
         }
     }
-    
-    __global__ void neg(int size, double * a, double *b)
+
+    __global__ void neg(int size_n, int size_m, double * a, double *b)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
-        if(tx < size && ty < size){
-            b[tx + (ty*size)] =  a[tx + (ty*size)] * -1;
+        if(tx < size_m && ty < size_n){
+            b[tx + (ty*size_m)] =  a[tx + (ty*size_m)] * -1;
         }
     }
     
-    __global__ void absolute(int size, double *a, double *b)
+    __global__ void absolute(int size_n, int size_m, double *a, double *b)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
-        if(tx < size && ty < size){
-            b[tx + (ty*size)] =  abs(a[tx + (ty*size)]);
+        if(tx < size_m && ty < size_n){
+            b[tx + (ty*size_m)] =  abs(a[tx + (ty*size_m)]);
         }
     }
 
