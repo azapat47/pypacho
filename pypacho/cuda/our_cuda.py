@@ -233,6 +233,8 @@ class OurCuda(AnArray,GpuArray):
     
     def to_numpy(self):
         mat = self.Matrix.get()
+        if self.transp:
+            mat = mat.transpose()
         return mat
     
     def norm(self):
