@@ -153,6 +153,40 @@ class OurCuda(AnArray,GpuArray):
         Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(MATRIX_SIZE),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))
         return OurCuda(self.n,cudita.m,None,c_gpu)
     
+    def dot_n(self, cudita):
+        if self.doble:
+            Cross = self.kernelBin_d.get_function("matrixMul")
+            x = np.zeros((self.n, cudita.m),dtype=np.float64)
+        else:
+            Cross = self.kernelBin.get_function("matrixMul")
+            x = np.zeros((self.n, cudita.m),dtype=np.float32)
+        #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
+        c_gpu = gpuarray.to_gpu(x)
+        MATRIX_SIZE = self.n
+        if(MATRIX_SIZE > 32):
+            grid_size = (MATRIX_SIZE//32) + 1
+        else:
+            grid_size = 1
+        Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))
+        return OurCuda(self.n,cudita.m,None,c_gpu)
+
+    def dot_n_v(self, cudita):
+        if self.doble:
+            Cross = self.kernelBin_d.get_function("vec_dot")
+            x = np.zeros((self.n, cudita.m),dtype=np.float64)
+        else:
+            Cross = self.kernelBin.get_function("vec_dot")
+            x = np.zeros((self.n, cudita.m),dtype=np.float32)
+        #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
+        c_gpu = gpuarray.to_gpu(x)
+        MATRIX_SIZE = self.n*self.m
+        if(MATRIX_SIZE > 32):
+            grid_size = (MATRIX_SIZE//32) + 1
+        else:
+            grid_size = 1
+        Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
+        return OurCuda(self.n,cudita.m,None,c_gpu)
+    
     #Better than Dom
     def domself(self):
         Dom = self.kernelBin.get_function("Dom1")

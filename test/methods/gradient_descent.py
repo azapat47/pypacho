@@ -17,17 +17,18 @@ def gradient_descent(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       
     error = tol+1  
     x = x0
+    A_t = A.transpose()
     while (error > tol)&(iter <= N):
-        grad = A.transpose() @ (A@x - b)
+        grad = A_t @ (A@x - b)
         xn = x - alpha*grad
-        error = norm(x - xn) / norm(xn)
+        error = np.linalg.norm(xn - x) / np.linalg.norm(xn)
         x = xn
         iter = iter + 1 
     if (iter > N):
         #print("Se ha excedido el número de iteraciones. Procedimiento FALLIDO")
-        return x,iter
+        return x,iter,error
     else:
-        return x,iter
+        return x,iter,error
 
 def gradient_descent2(A,b,alpha,x0,N=25,tol=0.01):
     iter=0       

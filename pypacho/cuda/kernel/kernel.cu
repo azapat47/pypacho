@@ -199,3 +199,80 @@
             b[idy + (idy*size)] =  a[idy];
         }
     }
+
+#define TILE_WIDTH 32
+
+// Compute C = A * B
+__global__ void matrixMul(float * A, float * B, float * C,
+  		       int numARows, int numAColumns,
+			       int numBRows, int numBColumns,
+			       int numCRows, int numCColumns,
+                   int t_a, int t_b) {
+    //@@ Insert code to implement matrix multiplication here
+    __shared__ float ds_M[TILE_WIDTH][TILE_WIDTH];
+    __shared__ float ds_N[TILE_WIDTH][TILE_WIDTH];
+    int bx = blockIdx.x, by = blockIdx.y,
+       tx = threadIdx.x, ty = threadIdx.y,
+       Row = by * TILE_WIDTH + ty,
+       Col = bx * TILE_WIDTH + tx;
+    float Pvalue = 0;
+    int ida = 0;
+    int idb = 0;
+    for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
+       if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
+           if(t_a == 0){
+                ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+            }
+                else{
+                ida = (m*TILE_WIDTH+tx)*numARows + Row;
+            }
+          ds_M[ty][tx] = A[ida];
+       }
+       else{
+          ds_M[ty][tx] = 0;
+       }
+       if (Col < numBColumns && m*TILE_WIDTH+ty < numBRows){
+           if(t_b == 0){
+                idb = (m*TILE_WIDTH+ty)*numBColumns+Col;
+            }
+                else{
+                idb = Col*numBRows+(m*TILE_WIDTH+ty);
+            }
+          ds_N[ty][tx] = B[idb];
+       }
+       else{
+          ds_N[ty][tx] = 0;
+       }
+
+       __syncthreads();
+       for (int k = 0; k < TILE_WIDTH; ++k)
+          Pvalue += ds_M[ty][k] * ds_N[k][tx];
+       __syncthreads();
+    }
+    if (Row < numCRows && Col < numCColumns)
+       C[Row*numCColumns+Col] = Pvalue;
+}
+
+#define N 32
+
+// Compute C = A * B
+__global__ void vec_dot(float * a, float * b, float * c, int size,
+                   int t_a, int t_b) {
+    //@@ Insert code to implement matrix multiplication here
+    __shared__ float temp[N];
+    int tx = threadIdx.x + blockDim.x * blockIdx.x;
+    temp[threadIdx.x] = a[tx] * b[tx];
+
+    __syncthreads();
+
+
+    if(threadIdx.x == 0){
+        float sum = 0;
+        for(int i = 0; i < N; i++){
+            if(tx + i < size){
+                sum += temp[i];
+            }
+        }
+        atomicAdd(c,sum);
+    }
+}
