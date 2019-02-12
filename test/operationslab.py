@@ -1,6 +1,6 @@
 import helper
 from pypacho.cuda import OurCuda
-from pypacho.opencl import OpenCLArray
+#from pypacho.opencl import OpenCLArray
 import numpy
 import pypacho
 import os
@@ -132,6 +132,7 @@ def runner(an,am,bn,bm,
   else:
     B = generate(bn,bm)
   x = generate_a(an,1)
+  x2 = generate_a(1,an)
   platform = []
   method = []
   Size_a_n = []
@@ -161,6 +162,7 @@ def runner(an,am,bn,bm,
     a_cuda = OurCuda(A.shape[0],A.shape[1],A,None)
     b_cuda = OurCuda(B.shape[0],B.shape[1],B,None)
     x_cuda = OurCuda(x.shape[0],x.shape[1],x,None)
+    x2_cuda = OurCuda(x2.shape[0],x2.shape[1],x2,None)
     if suma == True:
       time = test(add, a_cuda, b_cuda)
       platform.append("cuda")

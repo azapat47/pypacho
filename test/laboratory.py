@@ -22,9 +22,12 @@ import sys
 
 # Modulo 2
 def generate(size):
-    A = np.random.randn(size,size).astype(np.float64)
-    xv = np.random.randn(size,1).astype(np.float64)
+    #A = np.random.randn(size,size).astype(np.float32)
+    A = np.random.uniform(low=-100, high=100, size=(size,size)).astype(np.float64)
+    #xv = np.random.randn(size,1).astype(np.float32)
+    xv = np.random.uniform(low=-100, high=100, size=(size,1)).astype(np.float64)
     turn_dominant(A)
+    #print(A)
     B = A @ xv
     return A,B,xv
 
@@ -34,6 +37,11 @@ def turn_dominant(Matriz, delta = 0):
       for j in range(0,Matriz.shape[1]):
         sum += abs(Matriz[i][j])
       Matriz[i][i] = sum + delta
+
+def turn_dominant2(Matriz):
+    for i in range(0, Matriz.shape[0]):
+      delta = float(np.random.uniform(0,Matriz.shape[0]))
+      Matriz[i][i] = Matriz.shape[0] + delta
 
       
 # Arguments: EXIT_CODE: specify if any exit code is required       

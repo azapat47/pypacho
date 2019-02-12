@@ -177,3 +177,49 @@ __kernel void double_diagflat(__global double *a, __global double *b, int a_size
     b[gid*a_size + gid] = a[gid];
   }
 }
+
+__kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
+                      __global float* A,
+                      __global float* B,
+                      __global float* C,
+                      __local float* Asub,
+                      __local float* Bsub) {
+    
+    // Thread identifiers
+    const int row = get_local_id(0); // Local row ID (max: TS)
+    const int col = get_local_id(1); // Local col ID (max: TS)
+    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
+    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
+    const int globalRow = get_global_id(0);
+    const int globalCol = get_global_id(1);
+ 
+    // Local memory to fit a tile of TS*TS elements of A and B
+ 
+    // Initialise the accumulation register
+    float acc = 0.0f;
+    
+    // Loop over all tiles
+    const int numTiles = (ACOLS-1)/TS+1;
+    for (int t=0; t<numTiles; t++) {
+ 
+        // Load one tile of A and B into local memory
+        const int tiledRow = TS*t + row;
+        const int tiledCol = TS*t + col;
+        Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
+        Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
+ 
+        // Synchronise to make sure the tile is loaded
+        barrier(CLK_LOCAL_MEM_FENCE);
+ 
+        // Perform the computation for a single tile
+        for (int k=0; k<TS; k++) {
+            acc += Asub[k*TS + row] * Bsub[col*TS + k];
+        }
+ 
+        // Synchronise before loading the next tile
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+ 
+    // Store the final result in C
+    C[globalCol+ ACOLS * globalRow] = acc;
+}
