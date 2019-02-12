@@ -48,30 +48,28 @@ por último corremos las pruebas para garantiza la integridad de la compilación
 
 ### Correr laboratorios
 
-Casos
-
-labopratorio metodos numericos
+**laboratorio metodos numericos**  
 
 cuda y numpy
 
-python3 laboratory.py "[intentos por tamaño, tamaño inicial, delta, cuantos tamaños van a ser probados, iteraciones maximas por metodo, tolerancia de los metodos],[cuda, opencl,numpy],[jacoi,gradiente decendiente, gradiente conjugado]"
+    python3 laboratory.py "[intentos por tamaño, tamaño inicial, delta, cuantos tamaños van a ser probados, iteraciones maximas por metodo, tolerancia de los metodos],[cuda, opencl,numpy],[jacoi,gradiente decendiente, gradiente conjugado]"
 
 cuda, opencl, numpy
 
-optirun python3 laboratory.py "[intentos por tamaño, tamaño inicial, delta, cuantos tamaños van a ser probados, iteraciones maximas por metodo, tolerancia de los metodos],[cuda, opencl,numpy],[jacoi,gradiente decendiente, gradiente conjugado]"
+    optirun python3 laboratory.py "[intentos por tamaño, tamaño inicial, delta, cuantos tamaños van a ser probados, iteraciones maximas por metodo, tolerancia de los metodos],[cuda, opencl,numpy],[jacoi,gradiente decendiente, gradiente conjugado]"
 
-ejemplo
+**Ejemplo**  
 
-laboratorio que probara los metodos jacobi y gradiente conjugado en cuda y opencl, empezando con una matriz de tamaño 10 y amuentando de 10 en 10 hasta 50 y por cada tamaño se haran 5 corridas
+Laboratorio que probara los metodos jacobi y gradiente conjugado en cuda y opencl, empezando con una matriz de tamaño 10 y amuentando de 10 en 10 hasta 50 y por cada tamaño se haran 5 corridas
 
-optirun python3 laboratory.py "[5, 10, 10, 5, 100,0.000001],[1,1,0],[1,0,1]"
+	optirun python3 laboratory.py "[5, 10, 10, 5, 100,0.000001],[1,1,0],[1,0,1]"
 
-laboratorio de operaciones
+**laboratorio de operaciones**  
 
 cuda y numpy
 
-python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"
+	python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"
 
 cuda, opencl y numpy
 
-optirun python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"
+	optirun python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"
