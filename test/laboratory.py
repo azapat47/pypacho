@@ -1,7 +1,9 @@
 import helper
+#from pypacho.opencl import OpenCLArray
+
+
 from pypacho.anarray import AnArray
 from pypacho.cuda import OurCuda
-from pypacho.opencl import OpenCLArray
 from methods.jacobi import jacobi
 from methods.jacobi import import_library as ja_import
 from methods.conjugate_gradient import conjugate_gradient
