@@ -29,9 +29,9 @@ Ahora descargamos el respositorio oficial de pycuda e ingresamos
      git clone http://git.tiker.net/trees/pycuda.git
      cd pycuda
 
-Despues configuramos la compilación. --cuda-root debe ser la carpeta de instalación de cuda que contiene las demás carpetas como 'lib64', 'bin', etc.
---cudadrv-lib-dir debe apuntar al directirio que incluye todo los .so del driver
---boots-python-libname y  --boost-thread-libname debería funcionar sin ningun cambio usando el ambiente de conda
+Despues configuramos la compilación. *--cuda-root* debe ser la carpeta de instalación de cuda que contiene las demás carpetas como 'lib64', 'bin', etc.
+*--cudadrv-lib-dir* debe apuntar al directirio que incluye todo los .so del driver
+*--boots-python-libname* y  *--boost-thread-libname* debería funcionar sin ningun cambio usando el ambiente de conda
 
      ./configure.py --cuda-root=<path_to_cuda> --cudadrv-lib-dir=/usr/lib64/nvidia --boost-python-libname=boost_python-mt --boost-thread-libname=boost_thread-mt
      make
