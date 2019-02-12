@@ -10,9 +10,9 @@ Juan David Arcila Moreno
 
 ## USAGE
 
-Esta guia asume la instalación correcta de `Cuda toolkit` en cualquier version >= 2.0
+Esta guia asume la instalación correcta de `Cuda Toolkit` en cualquier version >= 2.0
 
-### Verficiar la instalación correcta de cuda
+### Verficiar la instalación correcta de Cuda
 
     nvcc -V
     
