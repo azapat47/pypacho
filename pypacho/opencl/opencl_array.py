@@ -121,7 +121,7 @@ class OpenCLArray(AnArray,GpuArray):
                            self.buf, B.buf,c_buf)
         return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
-    def dot(self,B):        
+    def dot_b(self,B):        
         if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
             return B.transpose().dot(self)
         else:
@@ -139,7 +139,7 @@ class OpenCLArray(AnArray,GpuArray):
                          numpy.uint32(B.n))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
     
-    def dot_n(self,B):        
+    def dot(self,B):        
         if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
             return B.transpose().dot(self)
         else:
