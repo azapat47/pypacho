@@ -7,7 +7,7 @@ import os
 os.environ["PYOPENCL_CTX"]='0'
 OpenCLArray.set_enviroment()
 
-size = 32
+size = 3
 
 A = np.random.randn(size,size).astype(np.float32)
 B = np.random.randn(size,size).astype(np.float32)
@@ -17,7 +17,7 @@ b_cu = OurCuda(B.shape[0],B.shape[1],B,None)
 a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
 b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
 
-#a_cu_t = a_cu @ b_cu 
+a_cu_t = a_cu @ b_cu 
 #A_t = A @ B
 
 #a_cu_t_2 = b_cu.transpose() @ a_cu.transpose() 
@@ -27,6 +27,7 @@ a_cl_t = a_cl @ b_cl
 A_t = A @ B
 
 print(A_t-a_cl_t.to_numpy())
+print(A_t-a_cu_t.to_numpy())
 
 #print(A_t_2 - a_cu_t_2.Matrix.get())
 

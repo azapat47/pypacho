@@ -205,9 +205,18 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
         // Load one tile of A and B into local memory
         const int tiledRow = TS*t + row;
         const int tiledCol = TS*t + col;
-        Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
-        Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
- 
+        if(globalRow < AROWS && tiledCol < ACOLS){
+          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
+        }
+        else{
+          Asub[col*TS + row] = 0;
+        }
+        if(globalCol < BCOLS && tiledRow < BROWS){
+          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
+        }
+        else{
+          Bsub[col*TS + row] = 0;
+        }
         // Synchronise to make sure the tile is loaded
         barrier(CLK_LOCAL_MEM_FENCE);
  
@@ -221,5 +230,7 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
     }
  
     // Store the final result in C
-    C[globalCol+ ACOLS * globalRow] = acc;
+    if(globalRow<AROWS && globalCol <BCOLS){
+      C[globalCol+ ACOLS * globalRow] = acc;
+    }
 }

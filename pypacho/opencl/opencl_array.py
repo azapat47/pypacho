@@ -121,7 +121,7 @@ class OpenCLArray(AnArray,GpuArray):
                            self.buf, B.buf,c_buf)
         return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
     
-    def dot_b(self,B):        
+    def dot(self,B):        
         if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
             return B.transpose().dot(self)
         else:
@@ -139,18 +139,28 @@ class OpenCLArray(AnArray,GpuArray):
                          numpy.uint32(B.n))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
     
-    def dot(self,B):        
+    def dot_n(self,B):        
         if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
             return B.transpose().dot(self)
         else:
             nbytes = self.m * B.n * self.dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
-            grid = (self.m, B.n)
             if self.dtype == numpy.float32:
               cl_function = self.prg.dot_matrix2
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.dot_matrix2
-
+            
+            MATRIX_SIZE = max(self.n,B.m)
+            if(MATRIX_SIZE > 32):
+                if MATRIX_SIZE % 32 == 0:
+                    sum = 0
+                else:
+                    sum = 1
+                grid_size = (self.n//32) + sum
+            else:
+                grid_size = 1
+            grid = (grid_size*32, grid_size*32)
+            #grid = (self.m, B.n)
             block = 16
             cl_function(self.queue, grid, (block, block), 
                          numpy.uint32(self.n),

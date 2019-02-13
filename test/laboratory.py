@@ -21,9 +21,9 @@ import sys
 # Modulo 2
 def generate(size):
     #A = np.random.randn(size,size).astype(np.float32)
-    A = np.random.uniform(low=-100, high=100, size=(size,size)).astype(np.float64)
+    A = np.random.uniform(low=-1, high=1, size=(size,size)).astype(np.float64)
     #xv = np.random.randn(size,1).astype(np.float32)
-    xv = np.random.uniform(low=-100, high=100, size=(size,1)).astype(np.float64)
+    xv = np.random.uniform(low=-1, high=1, size=(size,1)).astype(np.float64)
     turn_dominant(A)
     #print(A)
     B = A @ xv
