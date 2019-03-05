@@ -1,5 +1,5 @@
 import helper
-#from pypacho.opencl import OpenCLArray
+from pypacho.opencl import OpenCLArray
 
 
 from pypacho.anarray import AnArray
@@ -23,9 +23,9 @@ import sys
 # Modulo 2
 def generate(size):
     #A = np.random.randn(size,size).astype(np.float32)
-    A = np.random.uniform(low=-1, high=1, size=(size,size)).astype(np.float64)
+    A = np.random.uniform(low=-1, high=1, size=(size,size)).astype(np.float32)
     #xv = np.random.randn(size,1).astype(np.float32)
-    xv = np.random.uniform(low=-1, high=1, size=(size,1)).astype(np.float64)
+    xv = np.random.uniform(low=-1, high=1, size=(size,1)).astype(np.float32)
     turn_dominant(A)
     #print(A)
     B = A @ xv
@@ -136,7 +136,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       cuda=False,opencl=False,numpy=False,
       jaco=False, grad_descent=False, conj_grad=False):
   A,B,xv = generate(size)
-  x_ini = np.ones(xv.shape).astype(np.float64)
+  x_ini = np.ones(xv.shape).astype(np.float32)
   platform = []
   method = []
   Size = []

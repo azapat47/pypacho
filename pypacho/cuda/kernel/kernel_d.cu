@@ -99,7 +99,7 @@
         }
     }
 
-    __global__ void Cross(int t_a, int t_b, int sizean, int sizeam, int sizebm,double *a, double *b, double *c)
+    __global__ void DOT(int t_a, int t_b, int sizean, int sizeam, int sizebm,double *a, double *b, double *c)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
@@ -199,3 +199,98 @@
             b[idy + (idy*size)] =  a[idy];
         }
     }
+
+    #define TILE_WIDTH 32
+
+// Compute C = A * B
+__global__ void matrixMul(double * A, double * B, double * C,
+  		       int numARows, int numAColumns,
+			       int numBRows, int numBColumns,
+			       int numCRows, int numCColumns,
+                   int t_a, int t_b) {
+    //@@ Insert code to implement matrix multiplication here
+    __shared__ double ds_M[TILE_WIDTH][TILE_WIDTH];
+    __shared__ double ds_N[TILE_WIDTH][TILE_WIDTH];
+    int bx = blockIdx.x, by = blockIdx.y,
+       tx = threadIdx.x, ty = threadIdx.y,
+       Row = by * TILE_WIDTH + ty,
+       Col = bx * TILE_WIDTH + tx;
+    double Pvalue = 0;
+    int ida = 0;
+    int idb = 0;
+    for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
+       if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
+           if(t_a == 0){
+                ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+            }
+                else{
+                ida = (m*TILE_WIDTH+tx)*numARows + Row;
+            }
+          ds_M[ty][tx] = A[ida];
+       }
+       else{
+          ds_M[ty][tx] = 0;
+       }
+       if (Col < numBColumns && m*TILE_WIDTH+ty < numBRows){
+           if(t_b == 0){
+                idb = (m*TILE_WIDTH+ty)*numBColumns+Col;
+            }
+                else{
+                idb = Col*numBRows+(m*TILE_WIDTH+ty);
+            }
+          ds_N[ty][tx] = B[idb];
+       }
+       else{
+          ds_N[ty][tx] = 0;
+       }
+
+       __syncthreads();
+       for (int k = 0; k < TILE_WIDTH; ++k)
+          Pvalue += ds_M[ty][k] * ds_N[k][tx];
+       __syncthreads();
+    }
+    if (Row < numCRows && Col < numCColumns)
+       C[Row*numCColumns+Col] = Pvalue;
+}
+
+// matrix * vector
+
+__global__ void MatDotVec(double * A, double * B, double * C,
+  		       int numARows, int numAColumns,
+			       int numBRows, int numBColumns,
+			       int numCRows, int numCColumns,
+                   int t_a, int t_b) {
+    __shared__ double sub_mat[TILE_WIDTH][TILE_WIDTH];
+    __shared__ double sub_vec[TILE_WIDTH];
+
+    int bx = blockIdx.x, by = blockIdx.y,
+       tx = threadIdx.x, ty = threadIdx.y,
+       Row = by * TILE_WIDTH + ty,
+       Col = bx * TILE_WIDTH + tx;
+
+    double Pvalue = 0;
+    int ida = 0;
+    for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
+       if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
+           ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+           sub_mat[ty][tx] = A[ida];
+       }
+       else{
+          sub_mat[ty][tx] = 0;
+       }
+       if(m*TILE_WIDTH+ty<numBRows){
+           sub_vec[ty] = B[m*TILE_WIDTH+ty];
+       }
+       else{
+           sub_vec[ty]= 0; 
+       }
+
+       __syncthreads();
+       
+       for (int k = 0; k < TILE_WIDTH; ++k)
+          Pvalue += sub_mat[ty][k] * sub_vec[k];
+       __syncthreads();
+    }
+    if (Row < numCRows)
+       C[Row] = Pvalue;
+}

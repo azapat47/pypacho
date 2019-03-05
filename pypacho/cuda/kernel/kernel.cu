@@ -99,7 +99,7 @@
         }
     }
 
-    __global__ void Cross(int t_a, int t_b, int sizean, int sizeam, int sizebm,float *a, float *b, float *c)
+    __global__ void DOT(int t_a, int t_b, int sizean, int sizeam, int sizebm,float *a, float *b, float *c)
     {
         const uint tx = threadIdx.x + blockDim.x * blockIdx.x;
         const uint ty = threadIdx.y + blockDim.y * blockIdx.y;
@@ -275,4 +275,46 @@ __global__ void vec_dot(float * a, float * b, float * c, int size,
         }
         atomicAdd(c,sum);
     }
+}
+
+// matrix * vector
+
+__global__ void MatDotVec(float * A, float * B, float * C,
+  		       int numARows, int numAColumns,
+			       int numBRows, int numBColumns,
+			       int numCRows, int numCColumns,
+                   int t_a, int t_b) {
+    __shared__ float sub_mat[TILE_WIDTH][TILE_WIDTH];
+    __shared__ float sub_vec[TILE_WIDTH];
+
+    int bx = blockIdx.x, by = blockIdx.y,
+       tx = threadIdx.x, ty = threadIdx.y,
+       Row = by * TILE_WIDTH + ty,
+       Col = bx * TILE_WIDTH + tx;
+
+    float Pvalue = 0;
+    int ida = 0;
+    for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
+       if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
+           ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+           sub_mat[ty][tx] = A[ida];
+       }
+       else{
+          sub_mat[ty][tx] = 0;
+       }
+       if(m*TILE_WIDTH+ty<numBRows){
+           sub_vec[ty] = B[m*TILE_WIDTH+ty];
+       }
+       else{
+           sub_vec[ty]= 0; 
+       }
+
+       __syncthreads();
+       
+       for (int k = 0; k < TILE_WIDTH; ++k)
+          Pvalue += sub_mat[ty][k] * sub_vec[k];
+       __syncthreads();
+    }
+    if (Row < numCRows)
+       C[Row] = Pvalue;
 }
