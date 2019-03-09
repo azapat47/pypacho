@@ -200,7 +200,7 @@
         }
     }
 
-    #define TILE_WIDTH 32
+#define TILE_WIDTH 32
 
 // Compute C = A * B
 __global__ void matrixMul(double * A, double * B, double * C,
@@ -253,6 +253,55 @@ __global__ void matrixMul(double * A, double * B, double * C,
        C[Row*numCColumns+Col] = Pvalue;
 }
 
+
+// atomicadd sacado de https://stackoverflow.com/questions/39274472/error-function-atomicadddouble-double-has-already-been-defined
+// vec_dot sacado de https://www.nvidia.com/content/GTC-2010/pdfs/2131_GTC2010.pdf
+// matrixMul sacado de https://gist.github.com/wh5a/4313739
+
+// Compute C = A * B
+
+
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+
+  #else
+  static __inline__ __device__ double atomicAdd(double *address, double val) {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    if (val==0.0)
+      return __longlong_as_double(old);
+    do {
+      assumed = old;
+      old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val +__longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
+  }
+
+
+  #endif
+
+#define N 32
+
+__global__ void vec_dot(double * a, double * b, double * c, int size,
+                   int t_a, int t_b) {
+    //@@ Insert code to implement matrix multiplication here
+    __shared__ double temp[N];
+    int tx = threadIdx.x + blockDim.x * blockIdx.x;
+    temp[threadIdx.x] = a[tx] * b[tx];
+
+    __syncthreads();
+
+
+    if(threadIdx.x == 0){
+        double sum = 0;
+        for(int i = 0; i < N; i++){
+            if(tx + i < size){
+                sum += temp[i];
+            }
+        }
+        atomicAdd(c,sum);
+    }
+}
+
 // matrix * vector
 
 __global__ void MatDotVec(double * A, double * B, double * C,
@@ -263,16 +312,20 @@ __global__ void MatDotVec(double * A, double * B, double * C,
     __shared__ double sub_mat[TILE_WIDTH][TILE_WIDTH];
     __shared__ double sub_vec[TILE_WIDTH];
 
-    int bx = blockIdx.x, by = blockIdx.y,
+    int by = blockIdx.y,
        tx = threadIdx.x, ty = threadIdx.y,
-       Row = by * TILE_WIDTH + ty,
-       Col = bx * TILE_WIDTH + tx;
+       Row = by * TILE_WIDTH + ty;
 
     double Pvalue = 0;
     int ida = 0;
     for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
        if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
-           ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+           if(t_a == 0){
+                ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+            }
+                else{
+                ida = (m*TILE_WIDTH+tx)*numARows + Row;
+            }
            sub_mat[ty][tx] = A[ida];
        }
        else{
