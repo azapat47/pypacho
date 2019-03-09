@@ -200,6 +200,10 @@
         }
     }
 
+
+// vec_dot sacado de https://www.nvidia.com/content/GTC-2010/pdfs/2131_GTC2010.pdf
+// matrixMul sacado de https://gist.github.com/wh5a/4313739
+
 #define TILE_WIDTH 32
 
 // Compute C = A * B
@@ -287,16 +291,20 @@ __global__ void MatDotVec(float * A, float * B, float * C,
     __shared__ float sub_mat[TILE_WIDTH][TILE_WIDTH];
     __shared__ float sub_vec[TILE_WIDTH];
 
-    int bx = blockIdx.x, by = blockIdx.y,
+    int by = blockIdx.y,
        tx = threadIdx.x, ty = threadIdx.y,
-       Row = by * TILE_WIDTH + ty,
-       Col = bx * TILE_WIDTH + tx;
+       Row = by * TILE_WIDTH + ty;
 
     float Pvalue = 0;
     int ida = 0;
     for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
        if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
-           ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+           if(t_a == 0){
+                ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+            }
+                else{
+                ida = (m*TILE_WIDTH+tx)*numARows + Row;
+            }
            sub_mat[ty][tx] = A[ida];
        }
        else{
