@@ -1,5 +1,21 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
+inline void atomicAdd_g_f(volatile __global float *addr, float val)
+   {
+       union {
+           unsigned int u32;
+           float        f32;
+       } next, expected, current;
+   	current.f32    = *addr;
+       do {
+   	   expected.f32 = current.f32;
+           next.f32     = expected.f32 + val;
+   		current.u32  = atomic_cmpxchg( (volatile __global unsigned int *)addr, 
+                               expected.u32, next.u32);
+       } while( current.u32 != expected.u32 );
+   }
+
+
 __kernel void transpose(__global float *a_t, __global float *a, unsigned a_width, unsigned a_height)
 {
   int gid = get_global_id(0);
@@ -57,6 +73,87 @@ __kernel void dot_matrix(__global float *a,__global float *b, __global float *c,
       sum += (*(pA++))*(*pB);
     }
   c[gid] = sum;
+}
+
+__kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
+                      __global float* A,
+                      __global float* B,
+                      __global float* C,
+                      __local float* Asub,
+                      __local float* Bsub) {
+    
+    // Thread identifiers
+    const int row = get_local_id(0); // Local row ID (max: TS)
+    const int col = get_local_id(1); // Local col ID (max: TS)
+    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
+    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
+    const int globalRow = get_global_id(0);
+    const int globalCol = get_global_id(1);
+ 
+    // Local memory to fit a tile of TS*TS elements of A and B
+ 
+    // Initialise the accumulation register
+    float acc = 0.0f;
+    
+    // Loop over all tiles
+    const int numTiles = (ACOLS-1)/TS+1;
+    for (int t=0; t<numTiles; t++) {
+ 
+        // Load one tile of A and B into local memory
+        const int tiledRow = TS*t + row;
+        const int tiledCol = TS*t + col;
+        if(globalRow < AROWS && tiledCol < ACOLS){
+          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
+        }
+        else{
+          Asub[col*TS + row] = 0;
+        }
+        if(globalCol < BCOLS && tiledRow < BROWS){
+          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
+        }
+        else{
+          Bsub[col*TS + row] = 0;
+        }
+        // Synchronise to make sure the tile is loaded
+        barrier(CLK_LOCAL_MEM_FENCE);
+ 
+        // Perform the computation for a single tile
+        for (int k=0; k<TS; k++) {
+            acc += Asub[k*TS + row] * Bsub[col*TS + k];
+        }
+ 
+        // Synchronise before loading the next tile
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+ 
+    // Store the final result in C
+    if(globalRow<AROWS && globalCol <BCOLS){
+      C[globalCol+ ACOLS * globalRow] = acc;
+    }
+}
+
+
+__kernel void vec_dot(__global float* a, __global float* b, __global float* partial_sums,
+                         __local float* local_sum) {
+
+  uint lid = get_local_id(0);
+  uint gid = get_global_id(0);
+  uint local_size = get_local_size(0);
+
+  float private_sum = a[gid] * b[gid];
+
+  local_sum[lid] = private_sum;
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+  float sum = 0.0f;
+  if(lid == 0)
+  {
+    for (int i = 0; i < local_size; i++)
+    {
+       sum += local_sum[i];
+    }
+    atomicAdd_g_f(&partial_sums[0], sum);
+  }
 }
 
 __kernel void negative(__global float *a_n, __global float *a)
@@ -176,61 +273,4 @@ __kernel void double_diagflat(__global double *a, __global double *b, int a_size
   if(gid < a_size){
     b[gid*a_size + gid] = a[gid];
   }
-}
-
-__kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
-                      __global float* A,
-                      __global float* B,
-                      __global float* C,
-                      __local float* Asub,
-                      __local float* Bsub) {
-    
-    // Thread identifiers
-    const int row = get_local_id(0); // Local row ID (max: TS)
-    const int col = get_local_id(1); // Local col ID (max: TS)
-    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
-    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
-    const int globalRow = get_global_id(0);
-    const int globalCol = get_global_id(1);
- 
-    // Local memory to fit a tile of TS*TS elements of A and B
- 
-    // Initialise the accumulation register
-    float acc = 0.0f;
-    
-    // Loop over all tiles
-    const int numTiles = (ACOLS-1)/TS+1;
-    for (int t=0; t<numTiles; t++) {
- 
-        // Load one tile of A and B into local memory
-        const int tiledRow = TS*t + row;
-        const int tiledCol = TS*t + col;
-        if(globalRow < AROWS && tiledCol < ACOLS){
-          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
-        }
-        else{
-          Asub[col*TS + row] = 0;
-        }
-        if(globalCol < BCOLS && tiledRow < BROWS){
-          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
-        }
-        else{
-          Bsub[col*TS + row] = 0;
-        }
-        // Synchronise to make sure the tile is loaded
-        barrier(CLK_LOCAL_MEM_FENCE);
- 
-        // Perform the computation for a single tile
-        for (int k=0; k<TS; k++) {
-            acc += Asub[k*TS + row] * Bsub[col*TS + k];
-        }
- 
-        // Synchronise before loading the next tile
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
- 
-    // Store the final result in C
-    if(globalRow<AROWS && globalCol <BCOLS){
-      C[globalCol+ ACOLS * globalRow] = acc;
-    }
 }

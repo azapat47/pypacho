@@ -173,6 +173,23 @@ class OpenCLArray(AnArray,GpuArray):
                          pyopencl.LocalMemory(self.dtype.itemsize * block * block))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
 
+    def vecdot2(self):
+        size = max(self.n, self.m)
+        num_groups = 1#int(size / 256)
+        nbytes = self.dtype.itemsize
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes * num_groups)
+        grid = (self.n *self.m,)
+        if self.dtype == numpy.float32:
+            cl_function = self.prg.vec_dot
+        elif self.dtype == numpy.float64:
+            cl_function = self.prg.vec_dot
+
+        block = max(256, size)
+        cl_function(self.queue, grid, (block,),
+                            self.buf, self.buf, c_buf, 
+                            pyopencl.LocalMemory(block*nbytes))
+        return OpenCLArray(1,1,c_buf,None,self.dtype)
+
     def negative(self):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
         grid = (self.m *self.n,)
