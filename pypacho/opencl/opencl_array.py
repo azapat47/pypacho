@@ -142,8 +142,8 @@ class OpenCLArray(AnArray,GpuArray):
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
     
     def dot(self,B):        
-        if(self.n == 1 and self.m != 1 and B.n == 1  and B.m != 1):
-            return B.transpose().dot(self)
+        if(self.m == 1 and self.n != 1 and B.m != 1  and B.n == 1):
+            return self.vecdot(B)
         else:
             nbytes = self.m * B.n * self.dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
@@ -162,7 +162,7 @@ class OpenCLArray(AnArray,GpuArray):
             else:
                 grid_size = 1
             grid = (grid_size*32, grid_size*32)
-            block = int(sqrt(self.max_block_size))
+            block = int(numpy.sqrt(self.max_block_size))
             cl_function(self.queue, grid, (block, block), 
                          numpy.uint32(self.n),
                          numpy.uint32(self.m),
@@ -174,7 +174,7 @@ class OpenCLArray(AnArray,GpuArray):
                          pyopencl.LocalMemory(self.dtype.itemsize * block * block))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
 
-    def vecdot(self):
+    def vecdot(self, B):
         size = max(self.n, self.m)
         nbytes = self.dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
@@ -186,7 +186,7 @@ class OpenCLArray(AnArray,GpuArray):
 
         block = min(self.max_block_size, size)
         cl_function(self.queue, grid, (block,),
-                            self.buf, self.buf, c_buf, 
+                            self.buf, B.buf, c_buf, 
                             pyopencl.LocalMemory(block*nbytes), 
                             numpy.int32(size))
         return OpenCLArray(1,1,c_buf,None,self.dtype)
