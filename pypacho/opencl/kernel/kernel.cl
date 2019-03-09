@@ -1,19 +1,20 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 inline void atomicAdd_g_f(volatile __global float *addr, float val)
-   {
-       union {
-           unsigned int u32;
-           float        f32;
-       } next, expected, current;
-   	current.f32    = *addr;
-       do {
-   	   expected.f32 = current.f32;
-           next.f32     = expected.f32 + val;
-   		current.u32  = atomic_cmpxchg( (volatile __global unsigned int *)addr, 
-                               expected.u32, next.u32);
-       } while( current.u32 != expected.u32 );
-   }
+{
+  union {
+    unsigned int u32;
+    float        f32;
+    } next, expected, current;
+  current.f32    = *addr;
+  do {
+    expected.f32 = current.f32;
+    next.f32     = expected.f32 + val;
+    current.u32  = atomic_cmpxchg( (volatile __global unsigned int *)addr, 
+                                  expected.u32, next.u32);
+    } while( current.u32 != expected.u32 );
+}
+
 
 
 __kernel void transpose(__global float *a_t, __global float *a, unsigned a_width, unsigned a_height)
@@ -134,9 +135,8 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
 
 
 __kernel void vec_dot(__global float* a, __global float* b, __global float* partial_sums,
-                         __local float* local_sum) {
-
-  uint lid = get_local_id(0);
+                          __local float* local_sum, int vec_size) {
+  int lid = get_local_id(0);
   uint gid = get_global_id(0);
   uint local_size = get_local_size(0);
 
@@ -148,9 +148,17 @@ __kernel void vec_dot(__global float* a, __global float* b, __global float* part
   float sum = 0.0f;
   if(lid == 0)
   {
+    int num_groups = get_num_groups(0);
+    int group_id = get_group_id(0);
+    bool change_size = group_id/num_groups;
+    int new_size = vec_size - num_groups*local_size;
+
+    //local size = new_size if change_size == True, local_size otherwise
+    local_size = change_size * new_size + (1 - change_size) * local_size;
+
     for (int i = 0; i < local_size; i++)
     {
-       sum += local_sum[i];
+      sum += local_sum[i];
     }
     atomicAdd_g_f(&partial_sums[0], sum);
   }
@@ -190,6 +198,22 @@ __kernel void diagflat(__global float *a, __global float *b, int a_size)
 
 
 /******************************************************************** */
+
+
+inline void atomicAdd_g_d(volatile __global double *addr, double val)
+{
+  union {
+    unsigned int u32;
+    double        f32;
+    } next, expected, current;
+  current.f32    = *addr;
+  do {
+    expected.f32 = current.f32;
+    next.f32     = expected.f32 + val;
+    current.u32  = atomic_cmpxchg( (volatile __global unsigned int *)addr, 
+                                  expected.u32, next.u32);
+    } while( current.u32 != expected.u32 );
+}
 
 __kernel void double_transpose(__global double *a_t, __global double *a, unsigned a_width, unsigned a_height)
 {
@@ -247,6 +271,95 @@ __kernel void double_dot_matrix(__global double *a,__global double *b, __global 
       sum += (*(pA++))*(*pB);
     }
   c[gid] = sum;
+}
+
+
+__kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
+                      __global double* A,
+                      __global double* B,
+                      __global double* C,
+                      __local double* Asub,
+                      __local double* Bsub) {
+    
+    // Thread identifiers
+    const int row = get_local_id(0); // Local row ID (max: TS)
+    const int col = get_local_id(1); // Local col ID (max: TS)
+    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
+    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
+    const int globalRow = get_global_id(0);
+    const int globalCol = get_global_id(1);
+ 
+    // Local memory to fit a tile of TS*TS elements of A and B
+ 
+    // Initialise the accumulation register
+    double acc = 0;
+    
+    // Loop over all tiles
+    const int numTiles = (ACOLS-1)/TS+1;
+    for (int t=0; t<numTiles; t++) {
+ 
+        // Load one tile of A and B into local memory
+        const int tiledRow = TS*t + row;
+        const int tiledCol = TS*t + col;
+        if(globalRow < AROWS && tiledCol < ACOLS){
+          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
+        }
+        else{
+          Asub[col*TS + row] = 0;
+        }
+        if(globalCol < BCOLS && tiledRow < BROWS){
+          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
+        }
+        else{
+          Bsub[col*TS + row] = 0;
+        }
+        // Synchronise to make sure the tile is loaded
+        barrier(CLK_LOCAL_MEM_FENCE);
+ 
+        // Perform the computation for a single tile
+        for (int k=0; k<TS; k++) {
+            acc += Asub[k*TS + row] * Bsub[col*TS + k];
+        }
+ 
+        // Synchronise before loading the next tile
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+ 
+    // Store the final result in C
+    if(globalRow<AROWS && globalCol <BCOLS){
+      C[globalCol+ ACOLS * globalRow] = acc;
+    }
+}
+
+
+__kernel void double_vec_dot(__global double* a, __global double* b, __global double* partial_sums,
+                          __local double* local_sum, int vec_size) {
+  int lid = get_local_id(0);
+  uint gid = get_global_id(0);
+  uint local_size = get_local_size(0);
+
+  double private_sum = a[gid] * b[gid];
+
+  local_sum[lid] = private_sum;
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+  double sum = 0;
+  if(lid == 0)
+  {
+    int num_groups = get_num_groups(0);
+    int group_id = get_group_id(0);
+    bool change_size = group_id/num_groups;
+    int new_size = vec_size - num_groups*local_size;
+
+    //local size = new_size if change_size == True, local_size otherwise
+    local_size = change_size * new_size + (1 - change_size) * local_size;
+
+    for (int i = 0; i < local_size; i++)
+    {
+      sum += local_sum[i];
+    }
+    atomicAdd_g_d(&partial_sums[0], sum);
+  }
 }
 
 __kernel void double_negative(__global double *a_n, __global double *a)

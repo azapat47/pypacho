@@ -10,6 +10,7 @@ class OpenCLArray(AnArray,GpuArray):
     prg = None
     block_size = None
     ready = False
+    max_block_size = None
 
     def set_enviroment(block = None, options = '-Werror', kernel_params = None):
         if(not OpenCLArray.ready):
@@ -19,6 +20,7 @@ class OpenCLArray(AnArray,GpuArray):
             OpenCLArray.queue = pyopencl.CommandQueue(OpenCLArray.ctx,
                                         properties=pyopencl.command_queue_properties.PROFILING_ENABLE)
             OpenCLArray.block_size = block
+            OpenCLArray.max_block_size = OpenCLArray.queue.device.max_work_group_size
             if(kernel_params is None):
                 kernel_params = ''
             if(options is None):
@@ -148,7 +150,7 @@ class OpenCLArray(AnArray,GpuArray):
             if self.dtype == numpy.float32:
               cl_function = self.prg.dot_matrix2
             elif self.dtype == numpy.float64:
-                cl_function = self.prg.dot_matrix2
+                cl_function = self.prg.double_dot_matrix2
             
             MATRIX_SIZE = max(self.n,B.m)
             if(MATRIX_SIZE > 32):
@@ -160,8 +162,7 @@ class OpenCLArray(AnArray,GpuArray):
             else:
                 grid_size = 1
             grid = (grid_size*32, grid_size*32)
-            #grid = (self.m, B.n)
-            block = 16
+            block = int(sqrt(self.max_block_size))
             cl_function(self.queue, grid, (block, block), 
                          numpy.uint32(self.n),
                          numpy.uint32(self.m),
@@ -173,21 +174,21 @@ class OpenCLArray(AnArray,GpuArray):
                          pyopencl.LocalMemory(self.dtype.itemsize * block * block))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
 
-    def vecdot2(self):
+    def vecdot(self):
         size = max(self.n, self.m)
-        num_groups = 1#int(size / 256)
         nbytes = self.dtype.itemsize
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes * num_groups)
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         grid = (self.n *self.m,)
         if self.dtype == numpy.float32:
             cl_function = self.prg.vec_dot
         elif self.dtype == numpy.float64:
-            cl_function = self.prg.vec_dot
+            cl_function = self.prg.double_vec_dot
 
-        block = max(256, size)
+        block = min(self.max_block_size, size)
         cl_function(self.queue, grid, (block,),
                             self.buf, self.buf, c_buf, 
-                            pyopencl.LocalMemory(block*nbytes))
+                            pyopencl.LocalMemory(block*nbytes), 
+                            numpy.int32(size))
         return OpenCLArray(1,1,c_buf,None,self.dtype)
 
     def negative(self):
