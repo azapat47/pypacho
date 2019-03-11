@@ -184,8 +184,22 @@ class OpenCLArray(AnArray,GpuArray):
         block = int(numpy.sqrt(self.max_block_size))
         blockx = min(block, self.m)
         blocky = min(block, self.n)
+        MATRIX_SIZE = max(self.n,self.m,B.n,B.m)
+        if(MATRIX_SIZE > block):
+            if MATRIX_SIZE % block == 0:
+                sum = 0
+            else:
+                sum = 1
+            grid_size = (self.n//block) + sum
+        else:
+            grid_size = 1
+        grid = (grid_size*block, grid_size*block)
 
+<<<<<<< HEAD
         grid = (self.m + (blockx - self.m % blockx), self.n + (blocky - self.n % blocky))
+=======
+        #grid = (self.m + self.m % blockx, self.n + self.n % blocky)
+>>>>>>> cf9c4285440eae01182b1605f048ebfb2783c482
         if self.dtype == numpy.float32:
             cl_function = self.prg.matrix_vec
         elif self.dtype == numpy.float64:
@@ -203,8 +217,23 @@ class OpenCLArray(AnArray,GpuArray):
         nbytes = self.dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         block = min(self.max_block_size, size)
+<<<<<<< HEAD
         grid_size = self.n*self.m
         grid = (grid_size + (block - grid_size % block),)
+=======
+        #grid_size = self.n*self.m
+        #grid = (grid_size + grid_size % block,)
+        MATRIX_SIZE = max(self.n,self.m,B.n,B.m)
+        if(MATRIX_SIZE > block):
+            if MATRIX_SIZE % block == 0:
+                sum = 0
+            else:
+                sum = 1
+            grid_size = (self.n//block) + sum
+        else:
+            grid_size = 1
+        grid = (grid_size*block, )
+>>>>>>> cf9c4285440eae01182b1605f048ebfb2783c482
         if self.dtype == numpy.float32:
             cl_function = self.prg.vec_dot
         elif self.dtype == numpy.float64:
