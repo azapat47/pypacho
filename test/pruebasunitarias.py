@@ -11,7 +11,7 @@ size =5000
 
 print("tamaño = ", size)
 
-sizea = (1,size)
+sizea = (size,size)
 sizeb = (size,1)
 A =  np.random.uniform(low=-1, high=1, size = sizea).astype(np.float32)
 B =  np.random.uniform(low=-1, high=1, size = sizeb).astype(np.float32)
