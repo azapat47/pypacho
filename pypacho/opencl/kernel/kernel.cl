@@ -1,5 +1,5 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable\n
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable
 
 inline void atomicAdd_g_f(volatile __global float *addr, float val)
 {
