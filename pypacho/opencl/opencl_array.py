@@ -185,7 +185,7 @@ class OpenCLArray(AnArray,GpuArray):
         blockx = min(block, self.m)
         blocky = min(block, self.n)
 
-        grid = (self.m + self.m % blockx, self.n + self.n % blocky)
+        grid = (self.m + (blockx - self.m % blockx), self.n + (blocky - self.n % blocky))
         if self.dtype == numpy.float32:
             cl_function = self.prg.matrix_vec
         elif self.dtype == numpy.float64:
@@ -204,7 +204,7 @@ class OpenCLArray(AnArray,GpuArray):
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         block = min(self.max_block_size, size)
         grid_size = self.n*self.m
-        grid = (grid_size + grid_size % block,)
+        grid = (grid_size + (block - grid_size % block),)
         if self.dtype == numpy.float32:
             cl_function = self.prg.vec_dot
         elif self.dtype == numpy.float64:
