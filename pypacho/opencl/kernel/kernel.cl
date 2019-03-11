@@ -1,4 +1,5 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable\n
 
 inline void atomicAdd_g_f(volatile __global float *addr, float val)
 {
@@ -134,6 +135,42 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
 }
 
 
+__kernel void matrix_vec(__global float* a, __global float* vec, __global float* c,
+                          __local float* local_sum, __local float* vecsub, int vec_size)  {
+  int lidr = get_local_id(0);
+  int lidc = get_local_id(1);
+  int local_size = get_local_size(0);
+  int row = get_global_id(0);
+  int col = get_global_id(1);
+
+  if(lidr == 0)
+  {
+    vecsub[lidc] = vec[col];
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
+
+  if(lidc == 0)
+  {
+    int num_groups = get_num_groups(1);
+    int group_id = get_group_id(1);
+    bool change_size = group_id/num_groups;
+    int new_size = vec_size - num_groups*local_size;
+
+    //local size = new_size if change_size == True, local_size otherwise
+    new_size = change_size * new_size + (1 - change_size) * local_size;
+
+    float private_sum = 0;
+    for(int i = 0; i < new_size; i++)
+    {
+      private_sum += local_sum[local_size*lidr + i];
+    }
+    atomicAdd_g_f(&c[row], private_sum);
+  }
+}
+
+
 __kernel void vec_dot(__global float* a, __global float* b, __global float* partial_sums,
                           __local float* local_sum, int vec_size) {
   int lid = get_local_id(0);
@@ -200,7 +237,7 @@ __kernel void diagflat(__global float *a, __global float *b, int a_size)
 /******************************************************************** */
 
 
-inline void atomicAdd_g_d(volatile __global double *addr, double val)
+/*inline void atomicAdd_g_d(volatile __global double *addr, double val)
 {
   union {
     unsigned int u32;
@@ -213,6 +250,21 @@ inline void atomicAdd_g_d(volatile __global double *addr, double val)
     current.u32  = atomic_cmpxchg( (volatile __global unsigned int *)addr, 
                                   expected.u32, next.u32);
     } while( current.u32 != expected.u32 );
+}*/
+
+void atomicAdd_g_d(__global double *val, double delta) {
+  union {
+    double f;
+    ulong  i;
+    } old;
+  union {
+    double f;
+    ulong  i;
+    } new;
+  do {
+    old.f = *val;
+    new.f = old.f + delta;
+   } while (atom_cmpxchg ( (volatile __global ulong *)val, old.i, new.i) != old.i);
 }
 
 __kernel void double_transpose(__global double *a_t, __global double *a, unsigned a_width, unsigned a_height)
@@ -331,6 +383,41 @@ __kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BRO
     }
 }
 
+
+__kernel void double_matrix_vec(__global double* a, __global double* vec, __global double* c,
+                          __local double* local_sum, __local double* vecsub, int vec_size)  {
+  int lidr = get_local_id(0);
+  int lidc = get_local_id(1);
+  int local_size = get_local_size(0);
+  int row = get_global_id(0);
+  int col = get_global_id(1);
+
+  if(lidr == 0)
+  {
+    vecsub[lidc] = vec[col];
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+
+  local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
+
+  if(lidc == 0)
+  {
+    int num_groups = get_num_groups(1);
+    int group_id = get_group_id(1);
+    bool change_size = group_id/num_groups;
+    int new_size = vec_size - num_groups*local_size;
+
+    //local size = new_size if change_size == True, local_size otherwise
+    new_size = change_size * new_size + (1 - change_size) * local_size;
+
+    double private_sum = 0;
+    for(int i = 0; i < new_size; i++)
+    {
+      private_sum += local_sum[local_size*lidr + i];
+    }
+    atomicAdd_g_d(&c[row], private_sum);
+  }
+}
 
 __kernel void double_vec_dot(__global double* a, __global double* b, __global double* partial_sums,
                           __local double* local_sum, int vec_size) {

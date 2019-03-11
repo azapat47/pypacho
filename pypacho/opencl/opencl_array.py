@@ -141,9 +141,12 @@ class OpenCLArray(AnArray,GpuArray):
                          numpy.uint32(B.n))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
     
-    def dot(self,B):        
-        if(self.m == 1 and self.n != 1 and B.m != 1  and B.n == 1):
+    def dot(self,B):      
+        assert self.n == B.m, "Matrix dimentions must match"
+        if(self.m == 1 and B.n == 1):
             return self.vecdot(B)
+        elif(B.n == 1):
+            return self.matrixvec(B)
         else:
             nbytes = self.m * B.n * self.dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
@@ -173,6 +176,26 @@ class OpenCLArray(AnArray,GpuArray):
                          pyopencl.LocalMemory(self.dtype.itemsize * block * block),
                          pyopencl.LocalMemory(self.dtype.itemsize * block * block))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
+
+    def matrixvec(self, B):
+        size = self.m
+        nbytes = self.dtype.itemsize
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size*nbytes)
+        grid = (self.m, self.n)
+        if self.dtype == numpy.float32:
+            cl_function = self.prg.matrix_vec
+        elif self.dtype == numpy.float64:
+            cl_function = self.prg.double_matrix_vec
+
+        block = int(numpy.sqrt(self.max_block_size))
+        blockx = min(block, self.m)
+        blocky = min(block, self.n)
+        cl_function(self.queue, grid, (blockx, blocky),
+                            self.buf, B.buf, c_buf, 
+                            pyopencl.LocalMemory(blockx*blocky*nbytes),
+                            pyopencl.LocalMemory(blocky*nbytes), 
+                            numpy.int32(size))
+        return OpenCLArray(self.m,1,c_buf,None,self.dtype)
 
     def vecdot(self, B):
         size = max(self.n, self.m)
