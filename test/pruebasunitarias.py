@@ -7,43 +7,54 @@ import os
 os.environ["PYOPENCL_CTX"]='0'
 OpenCLArray.set_enviroment()
 
-size =64
+size =5000
 
-A =  np.random.uniform(low=-1, high=1, size=(size,1)).astype(np.float64)
-B =  np.random.uniform(low=-1, high=1, size=(1,size)).astype(np.float64)
+print("tamaño = ", size)
+
+sizea = (1,size)
+sizeb = (size,1)
+A =  np.random.uniform(low=-1, high=1, size = sizea).astype(np.float32)
+B =  np.random.uniform(low=-1, high=1, size = sizeb).astype(np.float32)
+print("operacion = A @ B")
+#print("operacion = A.transpose() @ B.transpose()")
+print("size A = ", sizea)
+print("size B = ", sizeb)
 a_cu = OurCuda(A.shape[0],A.shape[1],A,None)
 b_cu = OurCuda(B.shape[0],B.shape[1],B,None)
 
 a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
 b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
 
-a_cu_t = a_cu.transpose() @ b_cu.transpose()
-#a_cu_t = a_cu @ b_cu
-#A_t = A @ B
-A_t = A.transpose() @ B.transpose()
-
-#a_cu_t_2 = b_cu.transpose() @ a_cu.transpose() 
-#A_t_2 = B.transpose() @ A.transpose()
-
+a_cu_t = a_cu @ b_cu
+A_t = A @ B
 a_cl_t = a_cl @ b_cl
 
+#a_cu_t = a_cu.transpose() @ b_cu.transpose()
+#A_t = A.transpose() @ B.transpose()
+#a_cl_t = a_cl.transpose() @ b_cl.transpose()
+
+print("numpy - cuda presicion simple")
 print(A_t-a_cu_t.to_numpy())
+print("numpy - opencl presicion simple")
+print(A_t - a_cl_t.to_numpy())
 
-#print(A_t_2 - a_cu_t_2.Matrix.get())
 
+A =  np.random.uniform(low=-1, high=1, size=sizea).astype(np.float64)
+B =  np.random.uniform(low=-1, high=1, size=sizeb).astype(np.float64)
+a_cu = OurCuda(A.shape[0],A.shape[1],A,None)
+b_cu = OurCuda(B.shape[0],B.shape[1],B,None)
 
-
-'''
-#print(A)
 a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
-diag = a_cl.diag()
-#print(diag.to_numpy())
-diagflat = diag.diagflat()
-print("M")
-#print(diagflat.to_numpy())
-diagnp = np.diag(A)
-diagflatnp = np.diagflat(diagnp)
+b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
 
-print(diag.to_numpy()-diagnp)
-print(diagflat.to_numpy()-diagflatnp)
-'''
+a_cu_t = a_cu @ b_cu
+A_t = A @ B
+a_cl_t = a_cl @ b_cl
+
+#a_cu_t = a_cu.transpose() @ b_cu.transpose()
+#A_t = A.transpose() @ B.transpose()
+#a_cl_t = a_cl.transpose() @ b_cl.transpose()
+print("numpy - cuda presicion doble")
+print(A_t-a_cu_t.to_numpy())
+print("numpy - opencl presicion doble")
+print(A_t - a_cl_t.to_numpy())
