@@ -77,7 +77,7 @@ __kernel void dot_matrix(__global float *a,__global float *b, __global float *c,
   c[gid] = sum;
 }
 
-__kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
+__kernel void dot_matrix2(const int M, const int K, const int N, const int TS,
                       __global float* A,
                       __global float* B,
                       __global float* C,
@@ -87,10 +87,8 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
     // Thread identifiers
     const int row = get_local_id(0); // Local row ID (max: TS)
     const int col = get_local_id(1); // Local col ID (max: TS)
-    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
-    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
-    const int globalRow = get_global_id(0);
-    const int globalCol = get_global_id(1);
+    const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
+    const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
  
     // Local memory to fit a tile of TS*TS elements of A and B
  
@@ -98,30 +96,21 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
     float acc = 0.0f;
     
     // Loop over all tiles
-    const int numTiles = (ACOLS-1)/TS+1;
+    const int numTiles = K/TS;
     for (int t=0; t<numTiles; t++) {
  
         // Load one tile of A and B into local memory
         const int tiledRow = TS*t + row;
         const int tiledCol = TS*t + col;
-        if(globalRow < AROWS && tiledCol < ACOLS){
-          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
-        }
-        else{
-          Asub[col*TS + row] = 0;
-        }
-        if(globalCol < BCOLS && tiledRow < BROWS){
-          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
-        }
-        else{
-          Bsub[col*TS + row] = 0;
-        }
+        Asub[col + row*TS] = A[tiledCol + M*globalRow];
+        Bsub[col + row*TS] = B[globalCol + N*tiledRow];
+ 
         // Synchronise to make sure the tile is loaded
         barrier(CLK_LOCAL_MEM_FENCE);
  
         // Perform the computation for a single tile
         for (int k=0; k<TS; k++) {
-            acc += Asub[k*TS + row] * Bsub[col*TS + k];
+            acc = fma(Asub[k + row*TS], Bsub[col + k*TS], acc);
         }
  
         // Synchronise before loading the next tile
@@ -129,19 +118,19 @@ __kernel void dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, con
     }
  
     // Store the final result in C
-    if(globalRow<AROWS && globalCol <BCOLS){
-      C[globalCol+ ACOLS * globalRow] = acc;
-    }
+    C[globalCol + M*globalRow] = acc;
 }
 
 
 __kernel void matrix_vec(__global float* a, __global float* vec, __global float* c,
-                          __local float* local_sum, __local float* vecsub, int vec_size)  {
+                          __local float* local_sum, __local float* vecsub,
+                           int vec_size)  {
   int lidr = get_local_id(0);
   int lidc = get_local_id(1);
   int local_size = get_local_size(0);
   int row = get_global_id(0);
   int col = get_global_id(1);
+
 
   if(lidr == 0)
   {
@@ -150,6 +139,7 @@ __kernel void matrix_vec(__global float* a, __global float* vec, __global float*
   barrier(CLK_LOCAL_MEM_FENCE);
 
   local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
+  barrier(CLK_LOCAL_MEM_FENCE);
 
   if(lidc == 0)
   {
@@ -326,7 +316,7 @@ __kernel void double_dot_matrix(__global double *a,__global double *b, __global 
 }
 
 
-__kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BROWS, const int BCOLS, const int TS,
+__kernel void double_dot_matrix2(const int M, const int K, const int N, const int TS,
                       __global double* A,
                       __global double* B,
                       __global double* C,
@@ -336,10 +326,8 @@ __kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BRO
     // Thread identifiers
     const int row = get_local_id(0); // Local row ID (max: TS)
     const int col = get_local_id(1); // Local col ID (max: TS)
-    //const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
-    //const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
-    const int globalRow = get_global_id(0);
-    const int globalCol = get_global_id(1);
+    const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
+    const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
  
     // Local memory to fit a tile of TS*TS elements of A and B
  
@@ -347,30 +335,21 @@ __kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BRO
     double acc = 0;
     
     // Loop over all tiles
-    const int numTiles = (ACOLS-1)/TS+1;
+    const int numTiles = K/TS;
     for (int t=0; t<numTiles; t++) {
  
         // Load one tile of A and B into local memory
         const int tiledRow = TS*t + row;
         const int tiledCol = TS*t + col;
-        if(globalRow < AROWS && tiledCol < ACOLS){
-          Asub[col*TS + row] = A[tiledCol + ACOLS*globalRow];
-        }
-        else{
-          Asub[col*TS + row] = 0;
-        }
-        if(globalCol < BCOLS && tiledRow < BROWS){
-          Bsub[col*TS + row] = B[globalCol+ BCOLS*tiledRow];
-        }
-        else{
-          Bsub[col*TS + row] = 0;
-        }
+        Asub[col + row*TS] = A[tiledCol + M*globalRow];
+        Bsub[col + row*TS] = B[globalCol + N*tiledRow];
+ 
         // Synchronise to make sure the tile is loaded
         barrier(CLK_LOCAL_MEM_FENCE);
  
         // Perform the computation for a single tile
         for (int k=0; k<TS; k++) {
-            acc += Asub[k*TS + row] * Bsub[col*TS + k];
+            acc = fma(Asub[k + row*TS], Bsub[col + k*TS], acc);
         }
  
         // Synchronise before loading the next tile
@@ -378,9 +357,7 @@ __kernel void double_dot_matrix2(const int AROWS, const int ACOLS, const int BRO
     }
  
     // Store the final result in C
-    if(globalRow<AROWS && globalCol <BCOLS){
-      C[globalCol+ ACOLS * globalRow] = acc;
-    }
+    C[globalCol + M*globalRow] = acc;
 }
 
 
@@ -399,6 +376,7 @@ __kernel void double_matrix_vec(__global double* a, __global double* vec, __glob
   barrier(CLK_LOCAL_MEM_FENCE);
 
   local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
+  barrier(CLK_LOCAL_MEM_FENCE);
 
   if(lidc == 0)
   {

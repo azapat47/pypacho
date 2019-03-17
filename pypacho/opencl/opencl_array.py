@@ -155,26 +155,19 @@ class OpenCLArray(AnArray,GpuArray):
             elif self.dtype == numpy.float64:
                 cl_function = self.prg.double_dot_matrix2
             
-            MATRIX_SIZE = max(self.n,self.m,B.n,B.m)
-            if(MATRIX_SIZE > 32):
-                if MATRIX_SIZE % 32 == 0:
-                    sum = 0
-                else:
-                    sum = 1
-                grid_size = (self.n//32) + sum
-            else:
-                grid_size = 1
-            grid = (grid_size*32, grid_size*32)
             block = int(numpy.sqrt(self.max_block_size))
-            cl_function(self.queue, grid, (block, block), 
-                         numpy.uint32(self.n),
+            blockx = min(block, self.m)
+            blocky = min(block, self.n)
+
+            grid = (self.m + (blockx - self.m % blockx), self.n + (blocky - self.n % blocky))
+            cl_function(self.queue, grid, (blockx, blocky), 
                          numpy.uint32(self.m),
+                         numpy.uint32(self.n),
                          numpy.uint32(B.n),
-                         numpy.uint32(B.m),
                          numpy.uint32(block),
                          self.buf, B.buf, c_buf,
-                         pyopencl.LocalMemory(self.dtype.itemsize * block * block),
-                         pyopencl.LocalMemory(self.dtype.itemsize * block * block))
+                         pyopencl.LocalMemory(self.dtype.itemsize * block),
+                         pyopencl.LocalMemory(self.dtype.itemsize * block))
             return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
 
     def matrixvec(self, B):
@@ -184,16 +177,6 @@ class OpenCLArray(AnArray,GpuArray):
         block = int(numpy.sqrt(self.max_block_size))
         blockx = min(block, self.m)
         blocky = min(block, self.n)
-        MATRIX_SIZE = max(self.n,self.m,B.n,B.m)
-        if(MATRIX_SIZE > block):
-            if MATRIX_SIZE % block == 0:
-                sum = 0
-            else:
-                sum = 1
-            grid_size = (self.n//block) + sum
-        else:
-            grid_size = 1
-        grid = (grid_size*block, grid_size*block)
 
         grid = (self.m + (blockx - self.m % blockx), self.n + (blocky - self.n % blocky))
         if self.dtype == numpy.float32:
