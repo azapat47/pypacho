@@ -59,25 +59,7 @@ __kernel void divide(__global float *a, __global float *b, __global float *c)
   c[gid] = a[gid] / b[gid];
 }
 
-__kernel void dot_matrix(__global float *a,__global float *b, __global float *c,
-		  unsigned m, unsigned n, unsigned p)
-{
-  int gid = get_global_id(0);
-  c[gid] = 0;
-  int rowC = gid/p;
-  int colC = gid%p;
-  __global float *pA = &a[rowC*n];
-  __global float *pB = &b[colC];
-  float sum = 0;
-  for(int k=0; k<n; k++)
-    {
-      pB = &b[colC+k*p];
-      sum += (*(pA++))*(*pB);
-    }
-  c[gid] = sum;
-}
-
-__kernel void dot_matrix2(const int M, const int K, const int N, const int TS,
+__kernel void dot_matrix(const int M, const int K, const int N, const int TS,
                       __global float* A,
                       __global float* B,
                       __global float* C,
@@ -87,49 +69,54 @@ __kernel void dot_matrix2(const int M, const int K, const int N, const int TS,
     // Thread identifiers
     const int row = get_local_id(0); // Local row ID (max: TS)
     const int col = get_local_id(1); // Local col ID (max: TS)
-    const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
-    const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
- 
-    // Local memory to fit a tile of TS*TS elements of A and B
- 
+    const int globalRow = get_global_id(0); // Row ID of C (0..M)
+    const int globalCol = get_global_id(1); // Col ID of C (0..N)
+
     // Initialise the accumulation register
     float acc = 0.0f;
     
     // Loop over all tiles
-    const int numTiles = K/TS;
+    const int numTiles = ceil((float) K/TS);
     for (int t=0; t<numTiles; t++) {
- 
+
         // Load one tile of A and B into local memory
         const int tiledRow = TS*t + row;
         const int tiledCol = TS*t + col;
-        Asub[col + row*TS] = A[tiledCol + M*globalRow];
-        Bsub[col + row*TS] = B[globalCol + N*tiledRow];
- 
+        Asub[col + row*TS] = A[globalRow*K + t*TS + col];
+        Bsub[col + row*TS] = B[N*(t*TS + row) + globalCol];
+
         // Synchronise to make sure the tile is loaded
         barrier(CLK_LOCAL_MEM_FENCE);
- 
+
+        const bool change_size = (t+1)/numTiles;
+        int new_size = K - (numTiles - 1)*TS;
+
+        //local size = new_size if change_size == True, local_size otherwise
+        new_size = change_size * new_size + (1 - change_size) * TS;
+
         // Perform the computation for a single tile
-        for (int k=0; k<TS; k++) {
+        for (int k=0; k<new_size; k++) {
             acc = fma(Asub[k + row*TS], Bsub[col + k*TS], acc);
         }
- 
+
         // Synchronise before loading the next tile
         barrier(CLK_LOCAL_MEM_FENCE);
     }
- 
+
     // Store the final result in C
-    C[globalCol + M*globalRow] = acc;
+    if(globalCol < N && globalRow < M)
+      C[globalCol + M*globalRow] = acc;
 }
 
 
 __kernel void matrix_vec(__global float* a, __global float* vec, __global float* c,
                           __local float* local_sum, __local float* vecsub,
                            int vec_size)  {
-  int lidr = get_local_id(0);
-  int lidc = get_local_id(1);
-  int local_size = get_local_size(0);
-  int row = get_global_id(0);
-  int col = get_global_id(1);
+  const int lidr = get_local_id(0);
+  const int lidc = get_local_id(1);
+  const int local_size = get_local_size(0);
+  const int row = get_global_id(0);
+  const int col = get_global_id(1);
 
 
   if(lidr == 0)
@@ -143,9 +130,9 @@ __kernel void matrix_vec(__global float* a, __global float* vec, __global float*
 
   if(lidc == 0)
   {
-    int num_groups = get_num_groups(1);
-    int group_id = get_group_id(1);
-    bool change_size = group_id/num_groups;
+    const int num_groups = get_num_groups(1);
+    const int group_id = get_group_id(1);
+    const bool change_size = group_id/num_groups;
     int new_size = vec_size - num_groups*local_size;
 
     //local size = new_size if change_size == True, local_size otherwise
@@ -297,26 +284,9 @@ __kernel void double_divide(__global double *a, __global double *b, __global dou
   c[gid] = a[gid] / b[gid];
 }
 
-__kernel void double_dot_matrix(__global double *a,__global double *b, __global double *c,
-		  unsigned m, unsigned n, unsigned p)
-{
-  int gid = get_global_id(0);
-  c[gid] = 0;
-  int rowC = gid/p;
-  int colC = gid%p;
-  __global double *pA = &a[rowC*n];
-  __global double *pB = &b[colC];
-  double sum = 0;
-  for(int k=0; k<n; k++)
-    {
-      pB = &b[colC+k*p];
-      sum += (*(pA++))*(*pB);
-    }
-  c[gid] = sum;
-}
 
 
-__kernel void double_dot_matrix2(const int M, const int K, const int N, const int TS,
+__kernel void double_dot_matrix(const int M, const int K, const int N, const int TS,
                       __global double* A,
                       __global double* B,
                       __global double* C,
@@ -326,38 +296,41 @@ __kernel void double_dot_matrix2(const int M, const int K, const int N, const in
     // Thread identifiers
     const int row = get_local_id(0); // Local row ID (max: TS)
     const int col = get_local_id(1); // Local col ID (max: TS)
-    const int globalRow = TS*get_group_id(0) + row; // Row ID of C (0..M)
-    const int globalCol = TS*get_group_id(1) + col; // Col ID of C (0..N)
- 
-    // Local memory to fit a tile of TS*TS elements of A and B
- 
+    const int globalRow = get_global_id(0); // Row ID of C (0..M)
+    const int globalCol = get_global_id(1); // Col ID of C (0..N)
+
     // Initialise the accumulation register
     double acc = 0;
     
     // Loop over all tiles
-    const int numTiles = K/TS;
+    const int numTiles = ceil((float) K/TS);
     for (int t=0; t<numTiles; t++) {
- 
+
         // Load one tile of A and B into local memory
-        const int tiledRow = TS*t + row;
-        const int tiledCol = TS*t + col;
-        Asub[col + row*TS] = A[tiledCol + M*globalRow];
-        Bsub[col + row*TS] = B[globalCol + N*tiledRow];
- 
+        Asub[col + row*TS] = A[globalRow*K + t*TS + col];
+        Bsub[col + row*TS] = B[N*(t*TS + row) + globalCol];
+
         // Synchronise to make sure the tile is loaded
         barrier(CLK_LOCAL_MEM_FENCE);
- 
+
+        const bool change_size = (t+1)/numTiles;
+        int new_size = K - (numTiles - 1)*TS;
+
+        //local size = new_size if change_size == True, local_size otherwise
+        new_size = change_size * new_size + (1 - change_size) * TS;
+
         // Perform the computation for a single tile
-        for (int k=0; k<TS; k++) {
+        for (int k=0; k<new_size; k++) {
             acc = fma(Asub[k + row*TS], Bsub[col + k*TS], acc);
         }
- 
+
         // Synchronise before loading the next tile
         barrier(CLK_LOCAL_MEM_FENCE);
     }
- 
+
     // Store the final result in C
-    C[globalCol + M*globalRow] = acc;
+    if(globalCol < N && globalRow < M)
+      C[globalCol + M*globalRow] = acc;
 }
 
 
