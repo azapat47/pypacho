@@ -177,7 +177,7 @@ class OurCuda(AnArray,GpuArray):
                 Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))
             elif self.n != 1 and cudita.m == 1:
                 Cross = self.kernelBin.get_function("MatDotVec")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))                
+                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
             elif self.n == 1 and cudita.m == 1:
                 Cross = self.kernelBin.get_function("vec_dot")
                 Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
@@ -193,7 +193,7 @@ class OurCuda(AnArray,GpuArray):
                 Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))
             elif self.n != 1 and cudita.m == 1:
                 Cross = self.kernelBin.get_function("MatDotVec")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))                
+                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
             elif self.n == 1 and cudita.m == 1:
                 Cross = self.kernelBin.get_function("vec_dot")
                 Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
