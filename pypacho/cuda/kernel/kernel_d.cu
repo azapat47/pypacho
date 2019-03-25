@@ -313,36 +313,38 @@ __global__ void MatDotVec(double * A, double * B, double * C,
     __shared__ double sub_vec[TILE_WIDTH];
 
     int by = blockIdx.y,
-       tx = threadIdx.x, ty = threadIdx.y,
+       ty = threadIdx.y,
        Row = by * TILE_WIDTH + ty;
 
     double Pvalue = 0;
     int ida = 0;
     for (int m = 0; m < (numAColumns-1)/TILE_WIDTH+1; ++m) {
-       if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
-           if(t_a == 0){
-                ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+        for (int tx = 0; tx <TILE_WIDTH; ++tx){
+            if (Row < numARows && m*TILE_WIDTH+tx < numAColumns){
+                if(t_a == 0){
+                        ida = Row*numAColumns + (m*TILE_WIDTH+tx);
+                    }
+                        else{
+                        ida = (m*TILE_WIDTH+tx)*numARows + Row;
+                    }
+                sub_mat[ty][tx] = A[ida];
             }
-                else{
-                ida = (m*TILE_WIDTH+tx)*numARows + Row;
+            else{
+                sub_mat[ty][tx] = 0;
             }
-           sub_mat[ty][tx] = A[ida];
-       }
-       else{
-          sub_mat[ty][tx] = 0;
-       }
-       if(m*TILE_WIDTH+ty<numBRows){
-           sub_vec[ty] = B[m*TILE_WIDTH+ty];
-       }
-       else{
-           sub_vec[ty]= 0; 
-       }
+        }
+        if(m*TILE_WIDTH+ty<numBRows){
+            sub_vec[ty] = B[m*TILE_WIDTH+ty];
+        }
+        else{
+            sub_vec[ty]= 0; 
+        }
 
-       __syncthreads();
-       
-       for (int k = 0; k < TILE_WIDTH; ++k)
-          Pvalue += sub_mat[ty][k] * sub_vec[k];
-       __syncthreads();
+        __syncthreads();
+        
+        for (int k = 0; k < TILE_WIDTH; ++k)
+            Pvalue += sub_mat[ty][k] * sub_vec[k];
+        __syncthreads();
     }
     if (Row < numCRows)
        C[Row] = Pvalue;
