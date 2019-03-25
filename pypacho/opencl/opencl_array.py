@@ -179,7 +179,10 @@ class OpenCLArray(AnArray,GpuArray):
         blockx = min(block, self.m)
         blocky = min(block, self.n)
 
-        grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        #grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        grid = (blockx, math.ceil(self.n / blocky) * blocky)
+        print('grid: ', grid)
+        print('block: ', (blockx, blocky))
         if self.dtype == numpy.float32:
             cl_function = self.prg.matrix_vec
         elif self.dtype == numpy.float64:
@@ -189,24 +192,27 @@ class OpenCLArray(AnArray,GpuArray):
                             self.buf, B.buf, c_buf, 
                             pyopencl.LocalMemory(blockx*blocky*nbytes),
                             pyopencl.LocalMemory(blocky*nbytes), 
-                            numpy.int32(size))
+                            numpy.int32(self.n), numpy.int32(self.m))
         return OpenCLArray(self.m,1,c_buf,None,self.dtype)
 
     def vecdot(self, B):
-        size = max(self.n, self.m)
+        size = max(self.m, self.n)
         nbytes = self.dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
-        block = min(self.max_block_size, size)
-        grid_size = self.n*self.m
-        grid = (math.ceil(grid_size / block) * block, )
+        block_size = min(self.max_block_size, size) 
+        block = (block_size, 1)
+        grid_size = self.m*self.n
+        grid = (math.ceil(grid_size / block_size) * block_size, 1)
+        print('grid: ', grid)
+        print('block: ', block)
         if self.dtype == numpy.float32:
             cl_function = self.prg.vec_dot
         elif self.dtype == numpy.float64:
             cl_function = self.prg.double_vec_dot
         
-        cl_function(self.queue, grid, (block,),
+        cl_function(self.queue, grid, block,
                             self.buf, B.buf, c_buf, 
-                            pyopencl.LocalMemory(block*nbytes), 
+                            pyopencl.LocalMemory(block_size*nbytes), 
                             numpy.int32(size))
         return OpenCLArray(1,1,c_buf,None,self.dtype)
 

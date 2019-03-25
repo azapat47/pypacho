@@ -109,72 +109,76 @@ __kernel void dot_matrix(const int M, const int K, const int N, const int TS,
 }
 
 
-__kernel void matrix_vec(__global float* a, __global float* vec, __global float* c,
-                          __local float* local_sum, __local float* vecsub,
-                           int vec_size)  {
-  const int lidr = get_local_id(0);
-  const int lidc = get_local_id(1);
-  const int local_size = get_local_size(0);
-  const int row = get_global_id(0);
-  const int col = get_global_id(1);
+__kernel void matrix_vec( __global float* A, __global float* vec, __global float* c,
+			  __local float* Asub, __local float* vecsub,
+			  const int vec_size, const int matrix_rows) {
+  const int globalCol = get_global_id(1);
+  const int row = get_local_id(0);
+  const int col = get_local_id(1);
+  const int local_size_rows = get_local_size(0);
+  const int local_size_cols = get_local_size(1);
 
+  if(globalCol < vec_size) {
 
-  if(lidr == 0)
-  {
-    vecsub[lidc] = vec[col];
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  if(lidc == 0)
-  {
-    const int num_groups = get_num_groups(1);
-    const int group_id = get_group_id(1);
-    const bool change_size = group_id/num_groups;
-    int new_size = vec_size - num_groups*local_size;
-
-    //local size = new_size if change_size == True, local_size otherwise
-    new_size = change_size * new_size + (1 - change_size) * local_size;
-
-    float private_sum = 0;
-    for(int i = 0; i < new_size; i++)
-    {
-      private_sum += local_sum[local_size*lidr + i];
+    if(row == 0) {
+      vecsub[col] = vec[globalCol];
     }
-    atomicAdd_g_f(&c[row], private_sum);
+
+    const int num_tiles = ceil( (float) matrix_rows / local_size_rows);
+    for(int t = 0; t < num_tiles; t++) {
+      barrier(CLK_LOCAL_MEM_FENCE);
+    
+      const int globalRow = t*local_size_cols + row;
+      if(globalRow < matrix_rows) {
+	Asub[row*local_size_cols + col] = A[globalRow*vec_size + globalCol] * vecsub[col];
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(col == 0) {
+	  float private_sum = 0.0f;
+	  const int num_groups = get_num_groups(1) - 1;
+	  const int group_id = get_group_id(1);
+	  const bool change_size = group_id/num_groups;
+	  int new_size = vec_size - num_groups*local_size_cols;
+
+	  //local size = new_size if change_size == True, local_size otherwise
+	  new_size = change_size * new_size + (1 - change_size) * local_size_cols;
+	  for(int i = 0; i < new_size; i++) {
+	    private_sum += Asub[row*local_size_cols + i];
+	  }
+	  atomicAdd_g_f(&c[globalRow], private_sum);
+	}
+      }
+    }
   }
 }
 
 
-__kernel void vec_dot(__global float* a, __global float* b, __global float* partial_sums,
-                          __local float* local_sum, int vec_size) {
-  int lid = get_local_id(0);
-  uint gid = get_global_id(0);
-  uint local_size = get_local_size(0);
+__kernel void vec_dot(__global float* a, __global float* b, __global float* c,
+		      __local float* local_sum, int vec_size) {
+  const int lid = get_local_id(0);
+  const int gid = get_global_id(0);
+  const int local_size = get_local_size(0);
 
-  float private_sum = a[gid] * b[gid];
+  if(gid < vec_size) {
+    local_sum[lid] = a[gid] * b[gid];
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-  local_sum[lid] = private_sum;
+    if(lid == 0) {
+      float private_sum = 0.0f;
 
-  barrier(CLK_LOCAL_MEM_FENCE);
-  float sum = 0.0f;
-  if(lid == 0)
-  {
-    int num_groups = get_num_groups(0);
-    int group_id = get_group_id(0);
-    bool change_size = group_id/num_groups;
-    int new_size = vec_size - num_groups*local_size;
+      const int num_groups = get_num_groups(0) - 1;
+      const int group_id = get_group_id(0);
+      const bool change_size = group_id/num_groups;
+      int new_size = vec_size - num_groups*local_size;
 
-    //local size = new_size if change_size == True, local_size otherwise
-    local_size = change_size * new_size + (1 - change_size) * local_size;
-
-    for (int i = 0; i < local_size; i++)
-    {
-      sum += local_sum[i];
+      //local size = new_size if change_size == True, local_size otherwise
+      new_size = change_size * new_size + (1 - change_size) * local_size;
+      
+      for(int i = 0; i < new_size; i++) {
+	private_sum += local_sum[i];
+      }
+      atomicAdd_g_f(&c[0], private_sum);
     }
-    atomicAdd_g_f(&partial_sums[0], sum);
   }
 }
 
@@ -334,69 +338,75 @@ __kernel void double_dot_matrix(const int M, const int K, const int N, const int
 }
 
 
-__kernel void double_matrix_vec(__global double* a, __global double* vec, __global double* c,
-                          __local double* local_sum, __local double* vecsub, int vec_size)  {
-  int lidr = get_local_id(0);
-  int lidc = get_local_id(1);
-  int local_size = get_local_size(0);
-  int row = get_global_id(0);
-  int col = get_global_id(1);
+__kernel void double_matrix_vec( __global double* A, __global double* vec, __global double* c,
+			  __local double* Asub, __local double* vecsub,
+			  const int vec_size, const int matrix_rows) {
+  const int globalCol = get_global_id(1);
+  const int row = get_local_id(0);
+  const int col = get_local_id(1);
+  const int local_size_rows = get_local_size(0);
+  const int local_size_cols = get_local_size(1);
 
-  if(lidr == 0)
-  {
-    vecsub[lidc] = vec[col];
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
+  if(globalCol < vec_size) {
 
-  local_sum[local_size*lidr + lidc] = vec[col] * a[row*vec_size + col];
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  if(lidc == 0)
-  {
-    int num_groups = get_num_groups(1);
-    int group_id = get_group_id(1);
-    bool change_size = group_id/num_groups;
-    int new_size = vec_size - num_groups*local_size;
-
-    //local size = new_size if change_size == True, local_size otherwise
-    new_size = change_size * new_size + (1 - change_size) * local_size;
-
-    double private_sum = 0;
-    for(int i = 0; i < new_size; i++)
-    {
-      private_sum += local_sum[local_size*lidr + i];
+    if(row == 0) {
+      vecsub[col] = vec[globalCol];
     }
-    atomicAdd_g_d(&c[row], private_sum);
+
+    const int num_tiles = ceil( (float) matrix_rows / local_size_rows);
+    for(int t = 0; t < num_tiles; t++) {
+      barrier(CLK_LOCAL_MEM_FENCE);
+    
+      const int globalRow = t*local_size_cols + row;
+      if(globalRow < matrix_rows) {
+	Asub[row*local_size_cols + col] = A[globalRow*vec_size + globalCol] * vecsub[col];
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if(col == 0) {
+	  double private_sum = 0.0f;
+	  const int num_groups = get_num_groups(1) - 1;
+	  const int group_id = get_group_id(1);
+	  const bool change_size = group_id/num_groups;
+	  int new_size = vec_size - num_groups*local_size_cols;
+
+	  //local size = new_size if change_size == True, local_size otherwise
+	  new_size = change_size * new_size + (1 - change_size) * local_size_cols;
+	  for(int i = 0; i < new_size; i++) {
+	    private_sum += Asub[row*local_size_cols + i];
+	  }
+	  atomicAdd_g_d(&c[globalRow], private_sum);
+	}
+      }
+    }
   }
 }
 
-__kernel void double_vec_dot(__global double* a, __global double* b, __global double* partial_sums,
-                          __local double* local_sum, int vec_size) {
-  int lid = get_local_id(0);
-  uint gid = get_global_id(0);
-  uint local_size = get_local_size(0);
+__kernel void double_vec_dot(__global double* a, __global double* b, __global double* c,
+		      __local double* local_sum, int vec_size) {
+  const int lid = get_local_id(0);
+  const int gid = get_global_id(0);
+  const int local_size = get_local_size(0);
 
-  double private_sum = a[gid] * b[gid];
+  if(gid < vec_size) {
+    local_sum[lid] = a[gid] * b[gid];
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-  local_sum[lid] = private_sum;
+    if(lid == 0) {
+      double private_sum = 0.0f;
 
-  barrier(CLK_LOCAL_MEM_FENCE);
-  double sum = 0;
-  if(lid == 0)
-  {
-    int num_groups = get_num_groups(0);
-    int group_id = get_group_id(0);
-    bool change_size = group_id/num_groups;
-    int new_size = vec_size - num_groups*local_size;
+      const int num_groups = get_num_groups(0) - 1;
+      const int group_id = get_group_id(0);
+      const bool change_size = group_id/num_groups;
+      int new_size = vec_size - num_groups*local_size;
 
-    //local size = new_size if change_size == True, local_size otherwise
-    local_size = change_size * new_size + (1 - change_size) * local_size;
-
-    for (int i = 0; i < local_size; i++)
-    {
-      sum += local_sum[i];
+      //local size = new_size if change_size == True, local_size otherwise
+      new_size = change_size * new_size + (1 - change_size) * local_size;
+      
+      for(int i = 0; i < new_size; i++) {
+	private_sum += local_sum[i];
+      }
+      atomicAdd_g_d(&c[0], private_sum);
     }
-    atomicAdd_g_d(&partial_sums[0], sum);
   }
 }
 
