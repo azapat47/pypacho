@@ -29,35 +29,141 @@ __kernel void transpose(__global float *a_t, __global float *a, unsigned a_width
   a_t[idx_a_t] = a[idx_a];             
 }
 
-__kernel void add(__global float *a, __global float *b, __global float *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] + b[gid];
-}
+#define Type1 float
+#define Type2 float
+#define Out_Type float
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
 
-__kernel void subtract(__global float *a, __global float *b, __global float *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] - b[gid];
-}
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
 
-__kernel void multiply(__global float *a, __global float *b, __global float *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] * b[gid];
-}
+/*--------------------------------------*/
 
-__kernel void scalar_mult(__global float *a, float b, __global float *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] * b;
-}
+#define Type1 float
+#define Type2 double
+#define Out_Type double
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
 
-__kernel void divide(__global float *a, __global float *b, __global float *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] / b[gid];
-}
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 float
+#define Type2 int
+#define Out_Type float
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 double
+#define Type2 float
+#define Out_Type double
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 double
+#define Type2 double
+#define Out_Type double
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 double
+#define Type2 int
+#define Out_Type double
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+
+#define Type1 int
+#define Type2 float
+#define Out_Type float
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 int
+#define Type2 double
+#define Out_Type double
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
+
+#define Type1 int
+#define Type2 int
+#define Out_Type int
+#include "add.cl"
+#include "subtract.cl"
+#include "multiply.cl"
+#include "divide.cl"
+#include "scalar_mult.cl"
+
+#undef Type1 
+#undef Type2 
+#undef Out_Type 
+
+/*--------------------------------------*/
 
 __kernel void dot_matrix(const int M, const int K, const int N, const int TS,
                       __global float* A,
@@ -257,37 +363,6 @@ __kernel void double_transpose(__global double *a_t, __global double *a, unsigne
   int idx_a_t = col + row*a_width;
   a_t[idx_a_t] = a[idx_a];             
 }
-
-__kernel void double_add(__global double *a, __global double *b, __global double *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] + b[gid];
-}
-
-__kernel void double_subtract(__global double *a, __global double *b, __global double *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] - b[gid];
-}
-
-__kernel void double_multiply(__global double *a, __global double *b, __global double *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] * b[gid];
-}
-
-__kernel void double_scalar_mult(__global double *a, double b, __global double *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] * b;
-}
-
-__kernel void double_divide(__global double *a, __global double *b, __global double *c)
-{
-  int gid = get_global_id(0);
-  c[gid] = a[gid] / b[gid];
-}
-
 
 
 __kernel void double_dot_matrix(const int M, const int K, const int N, const int TS,
