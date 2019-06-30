@@ -91,12 +91,11 @@ class OpenCLArray(AnArray,GpuArray):
                 cl_function = self.prg.add_double_int
 
         elif self.dtype == numpy.int32:
+            dtype = B.dtype
             if B.dtype == numpy.float32:
                 cl_function = self.prg.add_int_float
-                dtype = numpy.dtype(numpy.float32)
             elif B.dtype == numpy.float64:
                 cl_function = self.prg.add_int_double
-                dtype = numpy.dtype(numpy.float64)
             elif B.dtype == numpy.int32:
                 cl_function = self.prg.add_int_int
 
@@ -128,12 +127,11 @@ class OpenCLArray(AnArray,GpuArray):
                 cl_function = self.prg.subtract_double_int
 
         elif self.dtype == numpy.int32:
+            dtype = B.dtype
             if B.dtype == numpy.float32:
                 cl_function = self.prg.subtract_int_float
-                dtype = numpy.dtype(numpy.float32)
             elif B.dtype == numpy.float64:
                 cl_function = self.prg.subtract_int_double
-                dtype = numpy.dtype(numpy.float64)
             elif B.dtype == numpy.int32:
                 cl_function = self.prg.subtract_int_int
 
@@ -163,13 +161,14 @@ class OpenCLArray(AnArray,GpuArray):
                 elif b_numpy.dtype == numpy.int32:
                     cl_function = self.prg.scalar_mult_float_int
 
-            elif B.dtype == numpy.float32:
-                cl_function = self.prg.multiply_float_float
-            elif B.dtype == numpy.float64:
-                cl_function = self.prg.multiply_float_double
-                dtype = numpy.dtype(numpy.float64)
-            elif B.dtype == numpy.int32:
-                cl_function = self.prg.multiply_float_int
+            else:
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.multiply_float_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.multiply_float_double
+                    dtype = numpy.dtype(numpy.float64)
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.multiply_float_int
 
         elif self.dtype == numpy.float64:
 
@@ -184,12 +183,13 @@ class OpenCLArray(AnArray,GpuArray):
                 elif b_numpy.dtype == numpy.int32:
                     cl_function = self.prg.scalar_mult_double_int
 
-            elif B.dtype == numpy.float32:
-                cl_function = self.prg.multiply_double_float
-            elif B.dtype == numpy.float64:
-                cl_function = self.prg.multiply_double_double
-            elif B.dtype == numpy.int32:
-                cl_function = self.prg.multiply_double_int
+            else:
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.multiply_double_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.multiply_double_double
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.multiply_double_int
 
         elif self.dtype == numpy.int32:
             if not isinstance(B, OpenCLArray):
@@ -203,14 +203,14 @@ class OpenCLArray(AnArray,GpuArray):
                 elif b_numpy.dtype == numpy.int32:
                     cl_function = self.prg.scalar_mult_int_int
 
-            elif B.dtype == numpy.float32:
-                cl_function = self.prg.multiply_int_float
-                dtype = numpy.dtype(numpy.float32)
-            elif B.dtype == numpy.float64:
-                cl_function = self.prg.multiply_int_double
-                dtype = numpy.dtype(numpy.float64)
-            elif B.dtype == numpy.int32:
-                cl_function = self.prg.multiply_int_int
+            else:
+                dtye = B.dtype
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.multiply_int_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.multiply_int_double  
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.multiply_int_int
 
         nbytes = size * dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
@@ -240,12 +240,11 @@ class OpenCLArray(AnArray,GpuArray):
                 cl_function = self.prg.divide_double_int
 
         elif self.dtype == numpy.int32:
+            dtype = B.dtype
             if B.dtype == numpy.float32:
                 cl_function = self.prg.divide_int_float
-                dtype = numpy.dtype(numpy.float32)
             elif B.dtype == numpy.float64:
                 cl_function = self.prg.divide_int_double
-                dtype = numpy.dtype(numpy.float64)
             elif B.dtype == numpy.int32:
                 cl_function = self.prg.divide_int_int
 
@@ -280,119 +279,203 @@ class OpenCLArray(AnArray,GpuArray):
         elif(B.n == 1):
             return self.matrixvec(B)
         else:
-            nbytes = self.m * B.n * self.dtype.itemsize
-            c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
+            dtype = self.dtype
             if self.dtype == numpy.float32:
-              cl_function = self.prg.dot_matrix
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.dot_matrix_float_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.dot_matrix_float_double
+                    dtype = B.dtype
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.dot_matrix_float_int
+
             elif self.dtype == numpy.float64:
-                cl_function = self.prg.double_dot_matrix
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.dot_matrix_double_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.dot_matrix_double_double
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.dot_matrix_double_int
+
+            elif self.dtype == numpy.int32:
+                dtype = B.dtype
+                if B.dtype == numpy.float32:
+                    cl_function = self.prg.dot_matrix_int_float
+                elif B.dtype == numpy.float64:
+                    cl_function = self.prg.dot_matrix_int_double
+                elif B.dtype == numpy.int32:
+                    cl_function = self.prg.dot_matrix_int_int
             
+            nbytes = self.m * B.n * dtype.itemsize
+            c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
             block = int(numpy.sqrt(self.max_block_size))
             blockx = min(block, self.m)
-            blocky = min(block, self.n)
+            blocky = min(block, B.n)
 
-            grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+            grid = (math.ceil(self.m / blockx) * blockx, math.ceil(B.n / blocky) * blocky)
             cl_function(self.queue, grid, (blockx, blocky), 
                          numpy.uint32(self.m),
                          numpy.uint32(self.n),
                          numpy.uint32(B.n),
                          numpy.uint32(blockx),
+                         numpy.uint32(blocky),
                          self.buf, B.buf, c_buf,
-                         pyopencl.LocalMemory(self.dtype.itemsize * block * block),
-                         pyopencl.LocalMemory(self.dtype.itemsize * block * block))
-            return OpenCLArray(self.m,B.n,c_buf,None,self.dtype)
+                         pyopencl.LocalMemory(self.dtype.itemsize * blockx * blocky),
+                         pyopencl.LocalMemory(B.dtype.itemsize * blockx * blocky))
+            return OpenCLArray(self.m,B.n,c_buf,None, dtype)
 
     def matrixvec(self, B):
         size = self.m
-        nbytes = self.dtype.itemsize
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size*nbytes)
+        dtype = self.dtype
+
+        if self.dtype == numpy.float32:
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.matrix_vec_float_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.matrix_vec_float_double
+                dtype = numpy.dtype(numpy.float64)
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.matrix_vec_float_int
+
+        elif self.dtype == numpy.float64:
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.matrix_vec_double_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.matrix_vec_double_double
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.matrix_vec_double_int
+
+        elif self.dtype == numpy.int32:
+            dtype = B.dtype
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.matrix_vec_int_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.matrix_vec_int_double
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.matrix_vec_int_int
+
+        nbytes = size*dtype.itemsize
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         block = int(numpy.sqrt(self.max_block_size))
         blockx = min(block, self.m)
         blocky = min(block, self.n)
+        block = (blockx, blocky)
 
         #grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
         grid = (blockx, math.ceil(self.n / blocky) * blocky)
-        print('grid: ', grid)
-        print('block: ', (blockx, blocky))
-        if self.dtype == numpy.float32:
-            cl_function = self.prg.matrix_vec
-        elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_matrix_vec
-
-        cl_function(self.queue, grid, (blockx, blocky),
+        cl_function(self.queue, grid, block,
                             self.buf, B.buf, c_buf, 
-                            pyopencl.LocalMemory(blockx*blocky*nbytes),
-                            pyopencl.LocalMemory(blocky*nbytes), 
+                            pyopencl.LocalMemory(blockx*blocky*dtype.itemsize),
+                            pyopencl.LocalMemory(blocky*B.dtype.itemsize), 
                             numpy.int32(self.n), numpy.int32(self.m))
-        return OpenCLArray(self.m,1,c_buf,None,self.dtype)
+        return OpenCLArray(self.m,1,c_buf,None,dtype)
 
     def vecdot(self, B):
         size = max(self.m, self.n)
-        nbytes = self.dtype.itemsize
+        dtype = self.dtype
+
+        if self.dtype == numpy.float32:
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.vec_dot_float_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.vec_dot_float_double
+                dtype = numpy.dtype(numpy.float64)
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.vec_dot_float_int
+
+        elif self.dtype == numpy.float64:
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.vec_dot_double_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.vec_dot_double_double
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.vec_dot_double_int
+
+        elif self.dtype == numpy.int32:
+            dtype = B.dtype
+            if B.dtype == numpy.float32:
+                cl_function = self.prg.vec_dot_int_float
+            elif B.dtype == numpy.float64:
+                cl_function = self.prg.vec_dot_int_double
+            elif B.dtype == numpy.int32:
+                cl_function = self.prg.vec_dot_int_int
+
+        nbytes = dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         block_size = min(self.max_block_size, size) 
         block = (block_size, 1)
-        grid_size = self.m*self.n
+        grid_size = size
         grid = (math.ceil(grid_size / block_size) * block_size, 1)
-        print('grid: ', grid)
-        print('block: ', block)
-        if self.dtype == numpy.float32:
-            cl_function = self.prg.vec_dot
-        elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_vec_dot
         
         cl_function(self.queue, grid, block,
                             self.buf, B.buf, c_buf, 
                             pyopencl.LocalMemory(block_size*nbytes), 
                             numpy.int32(size))
-        return OpenCLArray(1,1,c_buf,None,self.dtype)
+        return OpenCLArray(1,1,c_buf,None, dtype)
 
     def negative(self):
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
-        grid = (self.m *self.n,)
         if self.dtype == numpy.float32:
-            cl_function = self.prg.negative
+            cl_function = self.prg.negative_float
         elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_negative
-        
-        cl_function(self.queue, grid, self.block_size,
+            cl_function = self.prg.negative_double
+        elif self.dtype == numpy.int32:
+            cl_function = self.prg.negative_int
+
+        nbytes = self.dtype.itemsize * self.m * self.n
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
+        grid = (self.m *self.n,)
+        block = None
+        cl_function(self.queue, grid, block,
                            c_buf, self.buf)
         return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
 
     def sqrt(self):
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, self.nbytes)
-        grid = (self.m *self.n,)
+        dtype = self.dtype
         if self.dtype == numpy.float32:
-            cl_function = self.prg.sqrt_
+            cl_function = self.prg.sqrt_float
         elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_sqrt_
+            cl_function = self.prg.sqrt_double
+        elif self.dtype == numpy.int32:
+            cl_function = self.prg.sqrt_int
+            dtype = numpy.float32
+
+        nbytes = self.dtype.itemsize * self.m * self.n
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
+        grid = (self.m *self.n,)
+        block = None
         cl_function(self.queue, grid, self.block_size,
                            c_buf, self.buf)
-        return OpenCLArray(self.m,self.n,c_buf,None,self.dtype)
+        return OpenCLArray(self.m,self.n,c_buf,None, dtype)
 
     def diag(self):
+        if self.dtype == numpy.float32:
+            cl_function = self.prg.diag_float
+        elif self.dtype == numpy.float64:
+            cl_function = self.prg.diag_double
+        elif self.dtype == numpy.int32:
+            cl_function = self.prg.diag_int
+
         nbytes = self.m * self.dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         grid = (self.m,)
-        if self.dtype == numpy.float32:
-            cl_function = self.prg.diag
-        elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_diag
-        
-        cl_function(self.queue, grid, self.block_size,
+        block = None
+        cl_function(self.queue, grid, block,
                            self.buf, c_buf, numpy.uint32(self.m))
         return OpenCLArray(1,self.m,c_buf,None,self.dtype)
 
     def diagflat(self):
+        if self.dtype == numpy.float32:
+            cl_function = self.prg.diagflat_float
+        elif self.dtype == numpy.float64:
+            cl_function = self.prg.diagflat_double
+        elif self.dtype == numpy.int32:
+            cl_function = self.prg.diagflat_int
+
         nbytes = self.n * self.n * self.dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         grid = (self.n *self.n,)
-        if self.dtype == numpy.float32:
-            cl_function = self.prg.diagflat
-        elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_diagflat
-
-        cl_function(self.queue, grid, self.block_size,
+        block = None
+        cl_function(self.queue, grid, None,
                            self.buf, c_buf, numpy.uint32(self.n))
         return OpenCLArray(self.n,self.n,c_buf,None,self.dtype)
     
