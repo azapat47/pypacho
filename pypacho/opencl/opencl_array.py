@@ -57,14 +57,20 @@ class OpenCLArray(AnArray,GpuArray):
 
         
     def transpose(self):
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=self.nbytes)
-        grid = (self.m *self.n,)
         if self.dtype == numpy.float32:
-            cl_function = self.prg.transpose
+            cl_function = self.prg.transpose_float
         elif self.dtype == numpy.float64:
-            cl_function = self.prg.double_transpose
-            
-        cl_function(self.queue, grid, self.block_size,
+            cl_function = self.prg.transpose_double
+        elif self.dtype == numpy.int32:
+            cl_function = self.prg.transpose_int
+
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=self.nbytes)
+        max_block = int(numpy.sqrt(self.max_block_size))
+        blockx = min(max_block, self.m)
+        blocky = min(max_block, self.n)
+        block = (blockx, blocky)
+        grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        cl_function(self.queue, grid, block,
                            c_buf, self.buf, numpy.uint32(self.m), numpy.uint32(self.n))
         return OpenCLArray(self.n,self.m,c_buf,None,self.dtype)
 
