@@ -1,11 +1,11 @@
 import helper
 from pypacho.cuda import OurCuda
-#from pypacho.opencl import OpenCLArray
+from pypacho.opencl import OpenCLArray
 import numpy
 import pypacho
 import os
 from time import time
-import collections
+import collections.abc as collections
 import pandas as pd
 import json
 import sys
@@ -13,20 +13,8 @@ import sys
 np = None
 
 def generate(size_n,size_m):
-    A = numpy.random.randn(size_n,size_m).astype(numpy.float32)
-    #turn_dominant(A)
+    A = numpy.random.uniform(low=10000, high=20000, size=(size_n,size_m)).astype(numpy.float32)
     return A
-
-def generate_a(size_n,size_m):
-    A = numpy.random.randn(size_n,size_m).astype(numpy.float32)
-    return A
-
-def turn_dominant(Matriz, delta = 0):
-    for i in range(0, Matriz.shape[0]):
-      sum = 0
-      for j in range(0,Matriz.shape[1]):
-        sum += abs(Matriz[i][j])
-      Matriz[i][i] = sum + delta
       
 def usage(ec=None):
   print("Usage - optirun python3 op_laboratory.py [args] ")
@@ -79,7 +67,7 @@ def main(Glob_params, plataforms, methods):
     #For every matrix size_a
     for matrix_size in range(ini_size_a_m, ini_size_a_m+(delta*n), delta): 
       print("LAB: Matrix size", matrix_size, end=" | ")
-      print(str(int(matrix_size/delta)) + '/' + str(n))
+      print(str(int(((matrix_size-ini_size_a_m)/delta)+1)) + '/' + str(n))
       # Number Of trys  
       if(ini_size_a_n == 1):
         an = 1
@@ -98,7 +86,7 @@ def main(Glob_params, plataforms, methods):
       else:
         bm = matrix_size
       for tr in range(Glob_params[0]): 
-        print("  LAB: Trying number", tr, end='... ')
+        print("  LAB: Trying number", tr+1, end='... ')
         df = runner(an, am, bn, bm, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], methods[3],  methods[4],  methods[5],  methods[6])
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
@@ -123,16 +111,10 @@ def runner(an,am,bn,bm,
       suma=False, resta=False, punto=False, divi=False,
       multi=False, transp=False, norma=False):
   global np
-  if(an == 1 or am == 1):
-    A = generate_a(an,am)
-  else:
-    A = generate(an,am)
-  if(bn == 1 or bm == 1):
-    B = generate_a(bn,bm)
-  else:
-    B = generate(bn,bm)
-  x = generate_a(an,1)
-  x2 = generate_a(1,an)
+  A = generate(an,am)
+  B = generate(bn,bm)
+  x = generate(an,1)
+  x2 = generate(1,an)
   platform = []
   method = []
   Size_a_n = []
@@ -184,11 +166,29 @@ def runner(an,am,bn,bm,
     if punto == True:
       time = test(dot, a_cuda, b_cuda)
       platform.append("cuda")
-      method.append("punto")
+      method.append("punto matriz x matriz")
       Size_a_n.append(an)
       Size_a_m.append(am)
       Size_b_n.append(bn)
       Size_b_m.append(bm)
+      times.append(time)
+      #matriz vector
+      time = test(dot, a_cuda, x_cuda)
+      platform.append("cuda")
+      method.append("punto matriz x vector")
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
+      times.append(time)
+      #vector vector
+      time = test(dot, x2_cuda, x_cuda)
+      platform.append("cuda")
+      method.append("punto vector x vector")
+      Size_a_n.append(1)
+      Size_a_m.append(an)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
       times.append(time)  
     if divi == True:
       time = test(div, a_cuda, b_cuda)
@@ -232,12 +232,12 @@ def runner(an,am,bn,bm,
   if opencl == True:
     import pypacho
     np = pypacho
-  #create opencl
+    #create opencl
     OpenCLArray.set_enviroment()
     a_cl = OpenCLArray(A.shape[0],A.shape[1],None,A)
     b_cl = OpenCLArray(B.shape[0],B.shape[1],None,B)
     x_cl = OpenCLArray(x.shape[0],x.shape[1],None,x)
-
+    x2_cl = OpenCLArray(x2.shape[0],x2.shape[1],None,x2)
     if suma == True:
       time = test(add, a_cl, b_cl)
       platform.append("cl")
@@ -259,12 +259,30 @@ def runner(an,am,bn,bm,
     if punto == True:
       time = test(dot, a_cl, b_cl)
       platform.append("cl")
-      method.append("punto")
+      method.append("punto matriz x matriz")
       Size_a_n.append(an)
       Size_a_m.append(am)
       Size_b_n.append(bn)
       Size_b_m.append(bm)
-      times.append(time)  
+      times.append(time)
+      # matriz vector
+      time = test(dot, a_cl, x_cl)
+      platform.append("cl")
+      method.append("punto matriz x vector")
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
+      times.append(time)
+      # vector vector  
+      time = test(dot, x2_cl, x_cl)
+      platform.append("cl")
+      method.append("punto vector x vector")
+      Size_a_n.append(1)
+      Size_a_m.append(an)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
+      times.append(time)
     if divi == True:
       time = test(div, a_cl, b_cl)
       platform.append("cl")
@@ -330,12 +348,30 @@ def runner(an,am,bn,bm,
     if punto == True:
       time = test(dot, A, B)
       platform.append("numpy")
-      method.append("punto")
+      method.append("punto matriz x matriz")
       Size_a_n.append(an)
       Size_a_m.append(am)
       Size_b_n.append(bn)
       Size_b_m.append(bm)
-      times.append(time)  
+      times.append(time) 
+      # matriz vector
+      time = test(dot, A, x)
+      platform.append("numpy")
+      method.append("punto matriz x vector")
+      Size_a_n.append(an)
+      Size_a_m.append(am)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
+      times.append(time)
+      # vector vector  
+      time = test(dot, x2, x)
+      platform.append("numpy")
+      method.append("punto vector x vector")
+      Size_a_n.append(1)
+      Size_a_m.append(an)
+      Size_b_n.append(an)
+      Size_b_m.append(1)
+      times.append(time)
     if divi == True:
       time = test(div, A, B)
       platform.append("numpy")

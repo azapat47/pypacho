@@ -13,7 +13,7 @@ from methods.gradient_descent import import_library as gd_import
 import numpy as np
 import os
 from time import time
-import collections
+import collections.abc as collections
 import pandas as pd
 import json
 import sys
@@ -22,10 +22,10 @@ import sys
 
 # Modulo 2
 def generate(size):
-    #A = np.random.randn(size,size).astype(np.float32)
-    A = np.random.uniform(low=-1, high=1, size=(size,size)).astype(np.float32)
-    #xv = np.random.randn(size,1).astype(np.float32)
-    xv = np.random.uniform(low=-1, high=1, size=(size,1)).astype(np.float32)
+    #A = np.random.randn(size,size).astype(np.float64)
+    A = np.random.uniform(low=-100000, high=100000, size=(size,size)).astype(np.float64)
+    #xv = np.random.randn(size,1).astype(np.float64)
+    xv = np.random.uniform(low=-100000, high=100000, size=(size,1)).astype(np.float64)
     turn_dominant(A)
     #print(A)
     B = A @ xv
@@ -95,11 +95,11 @@ def main(Glob_params, plataforms, methods):
     #For every matrix size
     for matrix_size in range(ini_size, ini_size+(delta*n), delta): 
       print("LAB: Matrix size", matrix_size, end=" | ")
-      print(str(int(matrix_size/delta)) + '/' + str(n))
+      print(str(int(((matrix_size-ini_size)/delta)+1)) + '/' + str(n))
       # Number Of trys  
       for tr in range(Glob_params[0]): 
-        print("  LAB: Trying number", tr, end='... ')
-        df = runner(matrix_size, iter_meth, tolerance, 0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
+        print("  LAB: Trying number", tr+1, end='... ')
+        df = runner(matrix_size, iter_meth, tolerance,0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
@@ -136,7 +136,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       cuda=False,opencl=False,numpy=False,
       jaco=False, grad_descent=False, conj_grad=False):
   A,B,xv = generate(size)
-  x_ini = np.ones(xv.shape).astype(np.float32)
+  x_ini = np.ones(xv.shape).astype(np.float64)
   platform = []
   method = []
   Size = []

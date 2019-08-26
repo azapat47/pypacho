@@ -140,10 +140,10 @@ class OurCuda(AnArray,GpuArray):
 
     def dot_b(self, cudita):
         if self.doble:
-            Cross = self.kernelBin.get_function("Cross")
+            Cross = self.kernelBin.get_function("DOT")
             x = np.zeros((self.n, cudita.m),dtype=np.float64)
         else:
-            Cross = self.kernelBin.get_function("Cross")
+            Cross = self.kernelBin.get_function("DOT")
             x = np.zeros((self.n, cudita.m),dtype=np.float32)
         #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
         c_gpu = gpuarray.to_gpu(x)
