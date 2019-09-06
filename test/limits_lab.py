@@ -22,6 +22,7 @@ def limits():
             size = ini_size
             while True:
                 try:
+                    print("testing size: " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
                     with contextlib.redirect_stdout(None):
                         lab([1,size,size,1,100,0.0000001],plat,method)
                         size = size + 1000
