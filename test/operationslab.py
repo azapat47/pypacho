@@ -12,21 +12,26 @@ import sys
 
 np = None
 
-def generate(size_n,size_m):
-    A = numpy.random.uniform(low=10000, high=20000, size=(size_n,size_m)).astype(numpy.float32)
-    return A
+def generate(size_n,size_m,Type):
+  if Type:
+    npFloatType = numpy.float64
+  else:
+    npFloatType = numpy.float32
+  A = numpy.random.uniform(low=-10000, high=10000, size=(size_n,size_m)).astype(npFloatType)
+  return A
       
 def usage(ec=None):
-  print("Usage - optirun python3 op_laboratory.py [args] ")
+  print("Usage - python3 op_laboratory.py [args] ")
   print("Arguments: Iterable of Glob_params [trys per size ,initial_size_a_n, initial_size_a_m, initial_size_b_n, initial_size_b_m, delta, how many sizes will be tested]") 
   print("           Iterable of plataforms  [cuda, opencl, numpy] Plataforms, boolean value, in that order.")
   print("           Iterable of Methods     [+, -, @, /,  *, transp, norm] Methods, boolean value, in that order.")
-  print('Example of call from console: $ optirun python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]"')
+  print("           Double or float flag    false|true boolean value, if true the lab is going to run in double presicion otherwise in float")
+  print('Example of call from console: $ python3 operationslab.py "[1,10,10,10,10,10,5]" "[1,0,0]" "[1,0,0,0,0,0,0]" "false"')
   if(ec is not None):
     exit(ec)
     
 
-def main(Glob_params, plataforms, methods):
+def main(Glob_params, plataforms, methods, double = False):
     #Params check
     if(not isinstance(Glob_params, collections.Iterable) or not isinstance(plataforms, collections.Iterable) or not isinstance(methods, collections.Iterable)):
       print("Bad type in any arguments. Use Lists")
@@ -44,7 +49,12 @@ def main(Glob_params, plataforms, methods):
     if(not integrity_glob_params or not integrity_plataforms or not integrity_methods):
       print("Bad type in any element of params' list")
       usage(1) 
-    print("LAB: ***Starting***")
+
+    if(double):
+      doubleorfloat = "double"
+    else:
+      doubleorfloat = "float"
+    print("LAB: ***Starting in "+ doubleorfloat +" ***")
     # Creationg pandas DataFrame
     fat_panda = pd.DataFrame(columns=["platform", "method", "size_a_n", "size_a_m", "size_b_n", "size_b_m", "time"])
     fat_panda["size_a_n"] = fat_panda["size_a_n"].astype(int)
@@ -87,7 +97,7 @@ def main(Glob_params, plataforms, methods):
         bm = matrix_size
       for tr in range(Glob_params[0]): 
         print("  LAB: Trying number", tr+1, end='... ')
-        df = runner(an, am, bn, bm, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], methods[3],  methods[4],  methods[5],  methods[6])
+        df = runner(an, am, bn, bm, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], methods[3],  methods[4],  methods[5],  methods[6], double)
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
@@ -109,12 +119,12 @@ def test(method, *args):
 def runner(an,am,bn,bm,
       cuda=False,opencl=False,numpy=False,
       suma=False, resta=False, punto=False, divi=False,
-      multi=False, transp=False, norma=False):
+      multi=False, transp=False, norma=False, npFloatType=False):
   global np
-  A = generate(an,am)
-  B = generate(bn,bm)
-  x = generate(an,1)
-  x2 = generate(1,an)
+  A = generate(an,am,npFloatType)
+  B = generate(bn,bm,npFloatType)
+  x = generate(an,1,npFloatType)
+  x2 = generate(1,an,npFloatType)
   platform = []
   method = []
   Size_a_n = []
@@ -416,6 +426,9 @@ def runner(an,am,bn,bm,
 
 
 if __name__ == '__main__':
-    if(len(sys.argv)!=4): usage(0)
-    os.environ["PYOPENCL_CTX"]='0'
+  if(not(len(sys.argv)==4 or len(sys.argv)==5)): usage(0)
+  os.environ["PYOPENCL_CTX"]='0'
+  if len(sys.argv)==4:
     main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]))
+  else:
+    main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]),json.loads(sys.argv[4]))

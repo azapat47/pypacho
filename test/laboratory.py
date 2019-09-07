@@ -21,15 +21,12 @@ import sys
 
 
 # Modulo 2
-def generate(size):
-    #A = np.random.randn(size,size).astype(np.float64)
-    A = np.random.uniform(low=-100000, high=100000, size=(size,size)).astype(np.float64)
-    #xv = np.random.randn(size,1).astype(np.float64)
-    xv = np.random.uniform(low=-100000, high=100000, size=(size,1)).astype(np.float64)
-    turn_dominant(A)
-    #print(A)
-    B = A @ xv
-    return A,B,xv
+def generate(size,npFloatType):
+  A = np.random.uniform(low=-10000, high=10000, size=(size,size)).astype(npFloatType)
+  xv = np.random.uniform(low=-10000, high=10000, size=(size,1)).astype(npFloatType)
+  turn_dominant(A)
+  B = A @ xv
+  return A,B,xv
 
 def turn_dominant(Matriz, delta = 0):
     for i in range(0, Matriz.shape[0]):
@@ -46,11 +43,12 @@ def turn_dominant2(Matriz):
       
 # Arguments: EXIT_CODE: specify if any exit code is required       
 def usage(ec=None):
-  print("Usage - optirun python3 laboratory.py [args] ")
+  print("Usage - python3 laboratory.py [args] ")
   print("Arguments: Iterable of Glob_params [trys per size ,initial size, delta, how many sizes will be tested,tolerance, iteretions per method]") 
   print("           Iterable of plataforms  [cuda, opencl, numpy] Plataforms, boolean value, in that order.")
   print("           Iterable of Methods     [jacobi, GD, CG] Methods, boolean value, in that order.")
-  print('Example of call from console: $ optirun python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]"')
+  print("           Double or float flag    false|true boolean value, if true the lab is going to run in double presicion otherwise in float")
+  print('Example of call from console: $ python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]" "false"')
   if(ec is not None):
     exit(ec)
 
@@ -58,9 +56,10 @@ def usage(ec=None):
 #Arguments: Iterable Glob_params [trys per size ,initial size, delta, how many sizes will be tested, iteretions per method,tolerance] The number of trys, the size of the matrix and the delta of growth. The first matrix is always with a size of delta. 
 #           Iterable plataforms  [cuda, opencl, numpy] Plataforms, boolean values, in that order.
 #           Iterable Methods     [jacobi, GD, CG] Methods, boolean values, in that order.
-#Example of call from console: $ optirun python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]"
+#           Double or float flag false|true boolean value, if true the lab is going to run in double presicion otherwise in float
+#Example of call from console: $ python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]" "false"
 #Modulo 1
-def main(Glob_params, plataforms, methods):
+def main(Glob_params, plataforms, methods, double = False):
     #Params check
     if(not isinstance(Glob_params, collections.Iterable) or not isinstance(plataforms, collections.Iterable) or not isinstance(methods, collections.Iterable)):
       print("Bad type in any arguments. Use Lists")
@@ -78,8 +77,11 @@ def main(Glob_params, plataforms, methods):
     if(not integrity_glob_params or not integrity_plataforms or not integrity_methods):
       print("Bad type in any element of params' list")
       usage(1)
-     
-    print("LAB: ***Starting***")
+    if(double):
+      doubleorfloat = "double"
+    else:
+      doubleorfloat = "float"
+    print("LAB: ***Starting in "+ doubleorfloat +" ***")
     # Creationg pandas DataFrame
     fat_panda = pd.DataFrame(columns=["platform", "method", "size", "iterations", "time", "accuracy","dispersion" ])
     fat_panda["size"] = fat_panda["size"].astype(int)
@@ -99,7 +101,7 @@ def main(Glob_params, plataforms, methods):
       # Number Of trys  
       for tr in range(Glob_params[0]): 
         print("  LAB: Trying number", tr+1, end='... ')
-        df = runner(matrix_size, iter_meth, tolerance,0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2])
+        df = runner(matrix_size, iter_meth, tolerance,0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], double)
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
@@ -127,16 +129,15 @@ def test(method, xv, *args):
     
     return iter,t,error,disp
 
-
-# Test Descendent
-
-# Test Conjugate
-
 def runner(size=100, N=100, tol=0.001, alpha=0.001,
       cuda=False,opencl=False,numpy=False,
-      jaco=False, grad_descent=False, conj_grad=False):
-  A,B,xv = generate(size)
-  x_ini = np.ones(xv.shape).astype(np.float64)
+      jaco=False, grad_descent=False, conj_grad=False, double = False):
+  if double:
+    npFloatType = np.float64
+  else:
+    npFloatType = np.float32
+  A,B,xv = generate(size,npFloatType)
+  x_ini = np.ones(xv.shape).astype(npFloatType)
   platform = []
   method = []
   Size = []
@@ -267,11 +268,10 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
   dataframe = pd.DataFrame(data)
   return dataframe
 
-  
-  
-#Example of call from console: $ python lab.py "[1,1,10]" "[1,0,0]" "[1,0,0]"
-
 if __name__ == '__main__':
-    if(len(sys.argv)!=4): usage(0)
-    os.environ["PYOPENCL_CTX"]='0'
+  if(not(len(sys.argv)==4 or len(sys.argv)==5)): usage(0)
+  os.environ["PYOPENCL_CTX"]='0'
+  if len(sys.argv)==4:
     main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]))
+  else:
+    main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]),json.loads(sys.argv[4]))
