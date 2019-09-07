@@ -18,7 +18,7 @@ Esta guia asume la instalación correcta de `Cuda Toolkit` en cualquier version 
 
 #### Creación del Ambiente virtual de Python
 
-Recomendamos el uso de `conda` para la instalación. SE necesita una verion de Python >= 3.
+Recomendamos el uso de `conda` para la instalación. Se necesita una versión `Python>=3`.
 
      conda create -n pypacho python=3.7 
 
@@ -43,7 +43,7 @@ Los laboratorios constan de tres partes:
 
 Modo de ejecucion:
 
-     python3 limits_lab.py
+     python limits_lab.py
 
 En la salida estandar se verá el progreso del laboratorio y al final se imprimirá un diccionario dando los limites encontrados por cada método en cada plataforma.
 
@@ -58,7 +58,7 @@ En la salida estandar se verá el progreso del laboratorio y al final se imprimi
 
 Este laboratorio probará los métodos jacobi y gradiente conjugado en Cuda y OpenCL, empezando con una matriz de tamaño 10 y aumentando de 10 en 10 hasta 50. Por cada tamaño se harán 6 corridas distintas. Usará presición doble. 
 
-	python3 laboratory.py "[6, 10, 10, 5, 100,0.000001]" "[1,1,0]" " [1,0,1]" "true"
+	python laboratory.py "[6, 10, 10, 5, 100,0.000001]" "[1,1,0]" " [1,0,1]" "true"
 
 3. Laboratorio de Operaciones: Permite saber el tiempo de ejecución de las operaciones básicas en las distintas plataformas a evaluar. 
 
