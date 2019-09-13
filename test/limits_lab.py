@@ -1,5 +1,5 @@
-#from laboratory import main as lab
-#from operationslab import main as op
+from laboratory import main as lab
+from operationslab import main as op
 import os
 import sys
 import contextlib
