@@ -1,5 +1,5 @@
-from laboratory import main as lab
-from operationslab import main as op
+#from laboratory import main as lab
+#from operationslab import main as op
 import os
 import sys
 import contextlib
@@ -7,6 +7,12 @@ import json
 
 
 def limits(precision=False):
+    doubleorfloat = ""
+    if(precision):
+      doubleorfloat = "double"
+    else:
+      doubleorfloat = "float"
+    print("Running limits lab with "+ doubleorfloat +" precision...\n")
     valLimits = {}
     ini_size = 12000
     step = 1000
@@ -42,8 +48,8 @@ def limits(precision=False):
 def usage(ec=None):
   print("Calculates the maximun size linear system ecuation problem (Ax=b) that could be solve in this computer")
   print("Usage - python3 limits_lab.py [args] ")
-  print("Arguments: Precision: ['double'|'simple']. Default value: 'simple'")
-  print('Example of call from console: $ python3 limits_lab "double"')
+  print("Arguments: Precision: [double|simple]. Default value: simple")
+  print('Example of call from console: $python3 limits_lab double')
   if(ec is not None):
     exit(ec)        
 
@@ -52,13 +58,13 @@ if __name__ == '__main__':
     len_params = len(sys.argv)
     if(len_params>2): usage(0)
     if(len_params==2):
-      ps = json.loads(sys.argv[1]) 
+      ps = sys.argv[1]
       if(ps == "double"):  
         limits(precision=True)
       elif(ps == "simple"):
         limits()
       else:
-         print("Argument "+ ps+ "not valid\n") 
+         print("Argument '"+ ps+ "' is not valid\n") 
          usage(1)  
     else:
        limits()
