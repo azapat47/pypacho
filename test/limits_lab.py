@@ -1,5 +1,5 @@
-from laboratory import main as lab
-from operationslab import main as op
+#from laboratory import main as lab
+#from operationslab import main as op
 import os
 import sys
 import contextlib
@@ -37,9 +37,11 @@ def limits(precision=False):
                         size = size + step
                 except Exception as inst:
                     size = size - step
-                    if step <= 10:
+                    if step <= 10 or size <=0:
                         valLimits[plat_names[i]][method_names[j]]=size
                         break
+                    elif(size <= ini_size):
+                        continue
                     else:
                         step = step/10
                         size = size + step
