@@ -37,6 +37,8 @@ def limits(precision=False):
                     with contextlib.redirect_stdout(None):
                         lab([1,size,size,1,100,0.0000001],plat,method,precision)
                         find_minimum = False
+                        if(size<ini_size):
+                            step=step/10
                         size = size+step
                except Exception as inst:
                     size = size - step
