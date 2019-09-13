@@ -29,7 +29,21 @@ def limits(precision=False):
             method[j] = 1
             size = ini_size
             step = 1000
-            while True:
+            ## Look for at least minimum value
+            find_minimum=True
+            while(find_minimum):
+               try:
+                    print("testing size (minimum): " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
+                    with contextlib.redirect_stdout(None):
+                        lab([1,size,size,1,100,0.0000001],plat,method,precision)
+                        find_minimum = False
+                        size = size+step
+               except Exception as inst:
+                    size = size - step
+                    if(size==0):
+                        valLimits[plat_names[i]][method_names[j]]=size
+                        break
+            while not find_minimum:
                 try:
                     print("testing size: " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
                     with contextlib.redirect_stdout(None):
@@ -37,11 +51,9 @@ def limits(precision=False):
                         size = size + step
                 except Exception as inst:
                     size = size - step
-                    if step <= 10 or size <=0:
+                    if (step <= 10):
                         valLimits[plat_names[i]][method_names[j]]=size
                         break
-                    elif(size <= ini_size):
-                        continue
                     else:
                         step = step/10
                         size = size + step
