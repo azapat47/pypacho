@@ -77,6 +77,7 @@ def main(Glob_params, plataforms, methods, double = False):
     if(not integrity_glob_params or not integrity_plataforms or not integrity_methods):
       print("Bad type in any element of params' list")
       usage(1)
+    doubleorfloat = ""  
     if(double):
       doubleorfloat = "double"
     else:
@@ -106,7 +107,7 @@ def main(Glob_params, plataforms, methods, double = False):
         print("DONE")
     
     print(fat_panda)
-    fat_panda.to_csv("out.csv", sep=',')
+    fat_panda.to_csv("out_" + doubleorfloat + ".csv", sep=',')
 
 
         
