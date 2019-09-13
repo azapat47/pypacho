@@ -37,11 +37,12 @@ def limits(precision=False):
                         size = size + step
                 except Exception as inst:
                     size = size - step
-                    if step == 10:
+                    if step <= 10:
                         valLimits[plat_names[i]][method_names[j]]=size
                         break
                     else:
                         step = step/10
+                        size = size + step
                     
     print(valLimits)
             
