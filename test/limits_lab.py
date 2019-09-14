@@ -4,7 +4,7 @@ import os
 import sys
 import contextlib
 import json
-
+import gc
 
 def limits(precision=False):
     doubleorfloat = ""
@@ -14,7 +14,7 @@ def limits(precision=False):
       doubleorfloat = "float"
     print("Running limits lab with "+ doubleorfloat +" precision...\n")
     valLimits = {}
-    ini_size = 12000
+    ini_size = 38000
     step = 1000
     plat = [0,0,0]
     method = [0,0,0]
@@ -52,6 +52,8 @@ def limits(precision=False):
                         lab([1,size,size,1,100,0.0000001],plat,method,precision)
                         size = size + step
                 except Exception as inst:
+                    print(inst)
+                    gc.collect()
                     size = size - step
                     if (step <= 10):
                         valLimits[plat_names[i]][method_names[j]]=size
