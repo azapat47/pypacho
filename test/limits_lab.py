@@ -34,12 +34,12 @@ def limits(precision=False):
             while(find_minimum):
                try:
                     print("testing size (minimum): " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
-                    with contextlib.redirect_stdout(None):
-                        lab([1,size,size,1,100,0.0000001],plat,method,precision)
-                        find_minimum = False
-                        if(size<ini_size):
-                            step=step/10
-                        size = size+step
+                    #with contextlib.redirect_stdout(None):
+                    lab([1,size,size,1,100,0.0000001],plat,method,precision)
+                    find_minimum = False
+                    if(size<ini_size):
+                        step=step/10
+                    size = size+step
                except Exception as inst:
                     size = size - step
                     if(size==0):
@@ -48,9 +48,9 @@ def limits(precision=False):
             while not find_minimum:
                 try:
                     print("testing size: " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
-                    with contextlib.redirect_stdout(None):
-                        lab([1,size,size,1,100,0.0000001],plat,method,precision)
-                        size = size + step
+                    #with contextlib.redirect_stdout(None):
+                    lab([1,size,size,1,100,0.0000001],plat,method,precision)
+                    size = size + step
                 except Exception as inst:
                     print(inst)
                     gc.collect()
