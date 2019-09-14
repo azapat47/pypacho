@@ -179,8 +179,14 @@ class OurCuda(AnArray,GpuArray):
                 Cross = self.kernelBin.get_function("MatDotVec")
                 Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
             elif self.n == 1 and cudita.m == 1:
+                if(MATRIX_SIZE > 1024):
+                    if MATRIX_SIZE % 1024 == 0:
+                        sum = 0
+                    else:
+                        sum = 1
+                    grid_size = (MATRIX_SIZE//1024)+sum
                 Cross = self.kernelBin.get_function("vec_dot")
-                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
+                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (1024, 1, 1), grid = (grid_size,1,1))
             else:
                 Cross = self.kernelBin.get_function("DOT")
                 Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))
@@ -195,8 +201,14 @@ class OurCuda(AnArray,GpuArray):
                 Cross = self.kernelBin.get_function("MatDotVec")
                 Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
             elif self.n == 1 and cudita.m == 1:
+                if(MATRIX_SIZE > 1024):
+                    if MATRIX_SIZE % 1024 == 0:
+                        sum = 0
+                    else:
+                        sum = 1
+                    grid_size = (MATRIX_SIZE//1024)+sum
                 Cross = self.kernelBin.get_function("vec_dot")
-                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
+                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (1024, 1, 1), grid = (grid_size,1,1))
             else:
                 Cross = self.kernelBin.get_function("DOT")
                 Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))

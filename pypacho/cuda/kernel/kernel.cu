@@ -257,7 +257,7 @@ __global__ void matrixMul(float * A, float * B, float * C,
        C[Row*numCColumns+Col] = Pvalue;
 }
 
-#define N 32
+#define N 1024
 
 // Compute C = A * B
 __global__ void vec_dot(float * a, float * b, float * c, int size,

@@ -279,7 +279,7 @@ __global__ void matrixMul(double * A, double * B, double * C,
 
   #endif
 
-#define N 32
+#define N 1024
 
 __global__ void vec_dot(double * a, double * b, double * c, int size,
                    int t_a, int t_b) {
