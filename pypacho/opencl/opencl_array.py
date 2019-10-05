@@ -486,13 +486,9 @@ class OpenCLArray(AnArray,GpuArray):
         return OpenCLArray(self.n,self.n,c_buf,None,self.dtype)
     
     def norm(self):
-        at = self.transpose()
-        n2 = []
-        if(self.m != 1):
-            n2 = at @ self
-        else:
-            n2 = self @ at
-        return float(numpy.sqrt(n2.to_numpy()))
+        n2 = self.vecdot(self)
+        n = n2.sqrt()
+        return n.to_numpy().item()
 
     def __float__(self):
         return float(self.to_numpy())
