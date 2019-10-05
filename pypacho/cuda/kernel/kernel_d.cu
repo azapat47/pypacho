@@ -349,3 +349,26 @@ __global__ void MatDotVec(double * A, double * B, double * C,
     if (Row < numCRows)
        C[Row] = Pvalue;
 }
+
+// Compute C = A * B
+#define N 1024
+
+__global__ void cuadratic_sum(double * a, double * c, int size) {
+    c[0] = 0;
+    __shared__ double temp[N];
+    int tx = threadIdx.x + blockDim.x * blockIdx.x;
+    temp[threadIdx.x] = a[tx] * a[tx];
+
+    __syncthreads();
+
+    if(threadIdx.x == 0){
+        double sum = 0;
+        for(int i = 0; i < N; i++){
+            if(tx + i < size){
+                sum += temp[i];
+            }
+        }
+        atomicAdd(c,sum);    
+    }
+
+}

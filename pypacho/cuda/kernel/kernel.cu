@@ -262,7 +262,7 @@ __global__ void matrixMul(float * A, float * B, float * C,
 // Compute C = A * B
 __global__ void vec_dot(float * a, float * b, float * c, int size,
                    int t_a, int t_b) {
-    //@@ Insert code to implement matrix multiplication here
+    c[0] = 0;
     __shared__ float temp[N];
     int tx = threadIdx.x + blockDim.x * blockIdx.x;
     temp[threadIdx.x] = a[tx] * b[tx];
@@ -327,4 +327,28 @@ __global__ void MatDotVec(float * A, float * B, float * C,
     }
     if (Row < numCRows)
        C[Row] = Pvalue;
+}
+
+
+// Compute C = A * B
+#define N 1024
+
+__global__ void cuadratic_sum(float * a, float * c, int size) {
+    c[0] = 0;
+    __shared__ float temp[N];
+    int tx = threadIdx.x + blockDim.x * blockIdx.x;
+    temp[threadIdx.x] = a[tx] * a[tx];
+
+    __syncthreads();
+
+    if(threadIdx.x == 0){
+        float sum = 0;
+        for(int i = 0; i < N; i++){
+            if(tx + i < size){
+                sum += temp[i];
+            }
+        }
+        atomicAdd(c,sum);    
+    }
+
 }

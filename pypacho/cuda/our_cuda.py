@@ -11,6 +11,7 @@ class OurCuda(AnArray,GpuArray):
     kernel_code_template_d = None
     kernelBin_d = None
     doble = False
+    npType = None
     transp = False
 
     #Se tiene que cambiar a self, n, m, Matrix, host=None
@@ -21,20 +22,18 @@ class OurCuda(AnArray,GpuArray):
         self.transp = Transp
         if GpuMatrix is None:
             if Matrix.dtype == 'float64':
-                self.doble = True
+                self.npType = np.float64
             else:
-                self.doble = False
-
+                self.npType = np.float32
             self.Matrix=gpuarray.to_gpu(Matrix)
         else:
             if GpuMatrix.dtype == 'float64':
-                self.doble = True
+                self.npType = np.float64
             else:
-                self.doble = False
-
+                self.npType = np.float32
             self.Matrix = GpuMatrix
         if Bin is None:
-            if self.doble:
+            if self.npType == np.float64:
                 #doble
                 with open(kernel.get_path_d()) as file:
                         self.kernel_code_template = file.read()
@@ -49,7 +48,8 @@ class OurCuda(AnArray,GpuArray):
             self.kernelBin = Bin        
     
     def __del__(self):
-        self.Matrix.gpudata.free()
+        pass
+        #self.Matrix.gpudata.free()
 
     def id(self):
         return str(hex(id(self.Matrix)))
@@ -65,20 +65,9 @@ class OurCuda(AnArray,GpuArray):
     def __str__(self):
         return str(self.Matrix)
     
-    #def get(self, A):
-    #    pycuda.driver.memcpy_dtoh(A,self.Matrix)
-
-    def add_b(self,cudita):
-        c_gpu = self.Matrix + cudita.Matrix
-        return OurCuda(self.n,self.m,None,c_gpu)
-    
     def add(self,cudita):
-        if self.doble:
-            Add = self.kernelBin.get_function("Suma")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float64)
-        else:
-            Add = self.kernelBin.get_function("Suma")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float32)
+        Add = self.kernelBin.get_function("Suma")
+        c_gpu = gpuarray.empty((self.n, self.m), self.npType)
         MATRIX_SIZE = max(self.n,self.m)
         if(MATRIX_SIZE > 32):
             grid_size = (MATRIX_SIZE//32) + 1
@@ -89,12 +78,8 @@ class OurCuda(AnArray,GpuArray):
     
     
     def subtract(self,cudita):
-        if self.doble:
-            Sub = self.kernelBin.get_function("Resta")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float64)
-        else:
-            Sub = self.kernelBin.get_function("Resta")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float32)
+        Sub = self.kernelBin.get_function("Resta")
+        c_gpu = gpuarray.empty((self.n, self.m), self.npType)
         MATRIX_SIZE = max(self.n,self.m)
         if(MATRIX_SIZE > 32):
             grid_size = (MATRIX_SIZE//32) + 1
@@ -107,12 +92,8 @@ class OurCuda(AnArray,GpuArray):
         if not isinstance(cudita,OurCuda):
             c_gpu = cudita * self.Matrix
         else:
-            if self.doble:
-                Mul = self.kernelBin.get_function("Multi")
-                c_gpu = gpuarray.empty((self.n, self.m), np.float64)
-            else:
-                Mul = self.kernelBin.get_function("Multi")
-                c_gpu = gpuarray.empty((self.n, self.m), np.float32)
+            Mul = self.kernelBin.get_function("Multi")
+            c_gpu = gpuarray.empty((self.n, self.m), self.npType)
             MATRIX_SIZE = max(self.n,self.m)
             if(MATRIX_SIZE > 32):
                 grid_size = (MATRIX_SIZE//32) + 1
@@ -122,12 +103,8 @@ class OurCuda(AnArray,GpuArray):
         return OurCuda(self.n,self.m,None,c_gpu,Bin=self.kernelBin)
 
     def divide(self,cudita):
-        if self.doble:
-            Div = self.kernelBin.get_function("Divide")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float64)
-        else:
-            Div = self.kernelBin.get_function("Divide")
-            c_gpu = gpuarray.empty((self.n, self.m), np.float32)
+        Div = self.kernelBin.get_function("Divide")
+        c_gpu = gpuarray.empty((self.n, self.m), self.npType)    
         MATRIX_SIZE = max(self.n,self.m)
         if(MATRIX_SIZE > 32):
             grid_size = (MATRIX_SIZE//32) + 1
@@ -135,29 +112,6 @@ class OurCuda(AnArray,GpuArray):
             grid_size = 1
         Div(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n), np.int32(self.m),self.Matrix, cudita.Matrix, c_gpu,block = (32, 32, 1), grid = (grid_size,grid_size,1))
         return OurCuda(self.n,self.m,None,c_gpu,Bin=self.kernelBin)
-      
-    #falta negative y positive
-
-    def dot_b(self, cudita):
-        if self.doble:
-            Cross = self.kernelBin.get_function("DOT")
-            x = np.zeros((self.n, cudita.m),dtype=np.float64)
-        else:
-            Cross = self.kernelBin.get_function("DOT")
-            x = np.zeros((self.n, cudita.m),dtype=np.float32)
-        #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
-        c_gpu = gpuarray.to_gpu(x)
-        MATRIX_SIZE = max(self.n,cudita.m)
-        if(MATRIX_SIZE > 32):
-            if MATRIX_SIZE % 32 == 0:
-                sum = 0
-            else:
-                sum = 1
-            grid_size = (self.n//32)+sum
-        else:
-            grid_size = 1
-        Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))
-        return OurCuda(self.n,cudita.m,None,c_gpu,Bin=self.kernelBin)
     
     def dot(self, cudita):
         MATRIX_SIZE = max(self.n,self.m,cudita.n,cudita.m)
@@ -166,121 +120,40 @@ class OurCuda(AnArray,GpuArray):
                 sum = 0
             else:
                 sum = 1
-            grid_size = (MATRIX_SIZE//32)+sum
+            grid_size_32 = (MATRIX_SIZE//32)+sum
         else:
-            grid_size = 1
-        if self.doble:
-            x = np.zeros((self.n, cudita.m),dtype=np.float64)
-            c_gpu = gpuarray.to_gpu(x)
-            if self.n == cudita.n and self.m == cudita.m:
-                Cross = self.kernelBin.get_function("matrixMul")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))
-            elif self.n != 1 and cudita.m == 1:
-                Cross = self.kernelBin.get_function("MatDotVec")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
-            elif self.n == 1 and cudita.m == 1:
-                if(MATRIX_SIZE > 1024):
-                    if MATRIX_SIZE % 1024 == 0:
-                        sum = 0
-                    else:
-                        sum = 1
-                    grid_size = (MATRIX_SIZE//1024)+sum
-                Cross = self.kernelBin.get_function("vec_dot")
-                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (1024, 1, 1), grid = (grid_size,1,1))
-            else:
-                Cross = self.kernelBin.get_function("DOT")
-                Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))
-            
-        else:
-            x = np.zeros((self.n, cudita.m),dtype=np.float32)
-            c_gpu = gpuarray.to_gpu(x)
-            if self.n == cudita.n and self.m == cudita.m:
-                Cross = self.kernelBin.get_function("matrixMul")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size,grid_size,1))
-            elif self.n != 1 and cudita.m == 1:
-                Cross = self.kernelBin.get_function("MatDotVec")
-                Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size,1))                
-            elif self.n == 1 and cudita.m == 1:
-                if(MATRIX_SIZE > 1024):
-                    if MATRIX_SIZE % 1024 == 0:
-                        sum = 0
-                    else:
-                        sum = 1
-                    grid_size = (MATRIX_SIZE//1024)+sum
-                Cross = self.kernelBin.get_function("vec_dot")
-                Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (1024, 1, 1), grid = (grid_size,1,1))
-            else:
-                Cross = self.kernelBin.get_function("DOT")
-                Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size,grid_size,1))
-        return OurCuda(self.n,cudita.m,None,c_gpu,Bin=self.kernelBin)
+            grid_size_32 = 1
 
-    def dot_n_v(self, cudita):
-        if self.doble:
-            Cross = self.kernelBin.get_function("vec_dot")
-            x = np.zeros((self.n, cudita.m),dtype=np.float64)
-        else:
-            Cross = self.kernelBin.get_function("vec_dot")
-            x = np.zeros((self.n, cudita.m),dtype=np.float32)
-        #c_gpu = gpuarray.empty((self.n, cudita.m), np.float32)
-        c_gpu = gpuarray.to_gpu(x)
-        MATRIX_SIZE = self.n*self.m
-        if(MATRIX_SIZE > 32):
-            grid_size = (MATRIX_SIZE//32) + 1
-        else:
-            grid_size = 1
-        Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (32, 1, 1), grid = (grid_size,1,1))
-        return OurCuda(self.n,cudita.m,None,c_gpu,Bin=self.kernelBin)
-    
-    #Better than Dom
-    def domself(self):
-        Dom = self.kernelBin.get_function("Dom1")
-        MATRIX_SIZE = self.n
         if(MATRIX_SIZE > 1024):
-            grid_size = (MATRIX_SIZE//1024) + 1
+            if MATRIX_SIZE % 1024 == 0:
+                sum = 0
+            else:
+                sum = 1
+            grid_size_1024 = (MATRIX_SIZE//1024)+sum
         else:
-            grid_size = 1
-        Dom(np.int32(MATRIX_SIZE), self.Matrix ,block = (1, 1024, 1), grid = (1,grid_size,1))
-    
-    def dom(self):
-        Dom = self.kernelBin.get_function("Dom2")
-        MATRIX_SIZE = self.n
-        b_gpu = gpuarray.empty((self.n, self.m), np.float32)
-        if(MATRIX_SIZE > 1024):
-            grid_size = (MATRIX_SIZE//1024) + 1
+            grid_size_1024 = 1
+        c_gpu = gpuarray.empty((self.n, cudita.m), self.npType)
+        if self.n == cudita.n and self.m == cudita.m:
+            Cross = self.kernelBin.get_function("matrixMul")
+            Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (32, 32, 1), grid = (grid_size_32,grid_size_32,1))
+        elif self.n != 1 and cudita.m == 1:
+            Cross = self.kernelBin.get_function("MatDotVec")
+            Cross(self.Matrix, cudita.Matrix, c_gpu,np.int32(self.n),np.int32(self.m),np.int32(cudita.n),np.int32(cudita.m),np.int32(self.n),np.int32(cudita.m), np.int32(self.transp), np.int32(cudita.transp),block = (1, 32, 1), grid = (1,grid_size_32,1))                
+        elif self.n == 1 and cudita.m == 1:
+            Cross = self.kernelBin.get_function("vec_dot")
+            Cross(self.Matrix, cudita.Matrix, c_gpu, np.int32(MATRIX_SIZE),np.int32(self.transp), np.int32(cudita.transp),block = (1024, 1, 1), grid = (grid_size_1024,1,1))
         else:
-            grid_size = 1
-        Dom(np.int32(MATRIX_SIZE), self.Matrix, b_gpu ,block = (1, 1024, 1), grid = (1,grid_size,1))
-        return OurCuda(self.n,self.m,None,b_gpu,Bin=self.kernelBin)
-    
-    def transpose_b(self):
-        if self.doble:
-            Transpose = self.kernelBin.get_function("Transpose")
-            x = np.zeros((self.m, self.n),dtype=np.float64)
-        else:
-            Transpose = self.kernelBin.get_function("Transpose")
-            x = np.zeros((self.m, self.n),dtype=np.float32)
-        MATRIX_SIZE = self.n
-        b_gpu = gpuarray.to_gpu(x)
-        if(MATRIX_SIZE > 32):
-            grid_size = (MATRIX_SIZE//32) + 1
-        else:
-            grid_size = 1
-        Transpose(np.int32(self.m),np.int32(self.n), self.Matrix, b_gpu ,block = (32, 32, 1), grid = (grid_size,grid_size,1))
-        return OurCuda(self.m,self.n,None,b_gpu,Bin=self.kernelBin)
+            Cross = self.kernelBin.get_function("DOT")
+            Cross(np.int32(self.transp), np.int32(cudita.transp), np.int32(self.n),np.int32(self.m), np.int32(cudita.m),self.Matrix, cudita.Matrix, c_gpu, block = (32, 32, 1), grid = (grid_size_32,grid_size_32,1))
+            
+        return OurCuda(self.n,cudita.m,None,c_gpu,Bin=self.kernelBin)    
 
     def transpose(self):
-        #b_gpu = self.Matrix.copy()
-        return OurCuda(self.m,self.n,None,self.Matrix.copy(),True,Bin=self.kernelBin)
+        return OurCuda(self.m,self.n,None,self.Matrix,True,Bin=self.kernelBin)
 
     def diag(self):
-        if self.doble:
-            Diag = self.kernelBin.get_function("Diag")
-            x = np.zeros((self.n,1),dtype=np.float64)
-        else:
-            Diag = self.kernelBin.get_function("Diag")
-            x = np.zeros((self.n,1),dtype=np.float32)
-        
-        b_gpu = gpuarray.to_gpu(x)
+        Diag = self.kernelBin.get_function("Diag")
+        b_gpu = gpuarray.empty((self.n, 1), self.npType)
         MATRIX_SIZE = self.n
         if(MATRIX_SIZE > 1024):
             grid_size = (MATRIX_SIZE//1024) + 1
@@ -290,15 +163,9 @@ class OurCuda(AnArray,GpuArray):
         return OurCuda(1,MATRIX_SIZE,None,b_gpu,Bin=self.kernelBin)
 
     def diagflat(self):
-        MATRIX_SIZE = self.m
-        if self.doble:
-            DiagFlat = self.kernelBin.get_function("DiagFlat")
-            x = np.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=np.float64)
-        else:
-            DiagFlat = self.kernelBin.get_function("DiagFlat")
-            x = np.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=np.float32)
-        #b_gpu = gpuarray.empty((MATRIX_SIZE, MATRIX_SIZE), np.float32)
-        b_gpu = gpuarray.to_gpu(x)
+        MATRIX_SIZE = max(self.n,self.m)
+        DiagFlat = self.kernelBin.get_function("DiagFlat")
+        b_gpu = gpuarray.zeros((MATRIX_SIZE,MATRIX_SIZE),dtype=self.npType)
         if(MATRIX_SIZE > 1024):
             grid_size = (MATRIX_SIZE//1024) + 1
         else:
@@ -315,7 +182,7 @@ class OurCuda(AnArray,GpuArray):
             mat = mat.transpose()
         return mat
     
-    def norm(self):
+    def norm_b(self):
         at = self.transpose()
         n2 = []
         if(self.n != 1):
@@ -323,3 +190,21 @@ class OurCuda(AnArray,GpuArray):
         else:
             n2 = self @ at
         return float(np.sqrt(n2.to_numpy()))
+
+    def norm(self):
+        MATRIX_SIZE = max(self.n,self.m)
+        x = np.zeros(1,dtype=self.npType)
+        c_gpu = driver.mem_alloc(x.nbytes)
+        if(MATRIX_SIZE > 1024):
+            if MATRIX_SIZE % 1024 == 0:
+                sum = 0
+            else:
+                sum = 1
+            grid_size = (MATRIX_SIZE//1024)+sum
+        else:
+            grid_size = 1
+        Cuadratic = self.kernelBin.get_function("cuadratic_sum")
+        Cuadratic(self.Matrix, c_gpu, np.int32(MATRIX_SIZE),
+        block = (1024, 1, 1), grid = (grid_size,1,1))
+        driver.memcpy_dtoh(x,c_gpu)
+        return float(np.sqrt(x))
