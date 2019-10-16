@@ -66,12 +66,15 @@ class OpenCLArray(AnArray,GpuArray):
 
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=self.nbytes)
         max_block = int(numpy.sqrt(self.max_block_size))
-        blockx = min(max_block, self.m)
-        blocky = min(max_block, self.n)
+        blockx = min(max_block, self.n)
+        blocky = min(max_block, self.m)
         block = (blockx, blocky)
-        grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        grid = (math.ceil(self.n / blockx) * blockx, math.ceil(self.m / blocky) * blocky)
         cl_function(self.queue, grid, block,
-                           c_buf, self.buf, numpy.uint32(self.m), numpy.uint32(self.n))
+                           c_buf, self.buf, 
+                           pyopencl.LocalMemory(self.dtype.itemsize * (blockx + 1) * blocky),
+                           numpy.uint32(blockx), numpy.uint32(blocky),
+                           numpy.uint32(self.m), numpy.uint32(self.n))
         return OpenCLArray(self.n,self.m,c_buf,None,self.dtype)
 
 
@@ -106,9 +109,20 @@ class OpenCLArray(AnArray,GpuArray):
                 cl_function = self.prg.add_int_int
 
         nbytes = size * dtype.itemsize
-        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
-        cl_function(self.queue, grid, self.block_size,
-                           self.buf, B.buf,c_buf)
+        c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=nbytes)
+        max_block = int(numpy.sqrt(self.max_block_size))
+        blockx = min(max_block, self.m)
+        blocky = min(max_block, self.n)
+        block = (blockx, blocky)
+        grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        cl_function(self.queue, grid, block,
+                           self.buf, B.buf, c_buf,
+                           pyopencl.LocalMemory(self.dtype.itemsize * (blockx + 1) * blocky),
+                           numpy.uint32(blockx), numpy.uint32(blocky),
+                           numpy.uint32(self.m), numpy.uint32(self.n))
+        #c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
+        #cl_function(self.queue, grid, self.block_size,
+        #                   self.buf, B.buf,c_buf)
         return OpenCLArray(self.m,self.n,c_buf,None,dtype)
     
     def subtract(self,B):
