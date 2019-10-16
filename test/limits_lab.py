@@ -11,7 +11,7 @@ def binarySearch(r,plat,method,precision):
     l = 0
     realVal = 0
     while l <= r: 
-        mid = l + (r - l)/2; 
+        mid = l + (r - l)/2 
         try:
             #print("Trying minimum... " + str(mid) + " [" + str(l) + " , "+ str(r) + "]...", end="")
             with contextlib.redirect_stdout(None):
