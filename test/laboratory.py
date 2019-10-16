@@ -60,13 +60,14 @@ def usage(ec=None):
 #Example of call from console: $ python3 laboratory.py "[1,10,10,5,100,0.001]" "[1,0,0]" "[1,0,0]" "false"
 #Modulo 1
 def main(Glob_params, plataforms, methods, double = False):
-    #Params check
-    if(not isinstance(Glob_params, collections.Iterable) or not isinstance(plataforms, collections.Iterable) or not isinstance(methods, collections.Iterable)):
-      print("Bad type in any arguments. Use Lists")
-      usage(1)
-    if(len(Glob_params) != 6 or len(plataforms) != 3 or len(methods)!=3):
-      print("Bad number of elements in any param")
-      usage(1)
+    assert isinstance(Glob_params, collections.Iterable), "Global params must be List, is " + str(type(Glob_params))
+    assert isinstance(plataforms, collections.Iterable),  "Plaforms params must be List, is " + str(type(plataforms))
+    assert isinstance(methods, collections.Iterable),  "Methods params must be List, is " + str(type(methods))
+    assert len(Glob_params)==6, "Global Params must be 6 of length, but is " + str(len(Glob_params))
+    assert len(plataforms)==3, "Platforms params must be 3 of length, but is " + str(len(plataforms))
+    assert len(methods)==3, "Methods params must be 3 of length, but is " + str(len(plataforms))
+
+    #Params values check
     integrity_glob_params = all(isinstance(i, int)
                                for i in Glob_params[:-1]) and isinstance(Glob_params[5],float)
     integrity_plataforms = all((isinstance(i, int) and (i == 0 or i == 1)) 
@@ -77,6 +78,7 @@ def main(Glob_params, plataforms, methods, double = False):
     if(not integrity_glob_params or not integrity_plataforms or not integrity_methods):
       print("Bad type in any element of params' list")
       usage(1)
+      
     doubleorfloat = ""  
     if(double):
       doubleorfloat = "double"

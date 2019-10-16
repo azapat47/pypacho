@@ -4,7 +4,25 @@ import os
 import sys
 import contextlib
 import json
-import gc
+
+# Iterative Binary Search Function 
+def binarySearch(r,plat,method,precision): 
+    delta = 100
+    l = 0
+    realVal = 0
+    while l <= r: 
+        mid = l + (r - l)/2; 
+        try:
+            #print("Trying minimum... " + str(mid) + " [" + str(l) + " , "+ str(r) + "]...", end="")
+            with contextlib.redirect_stdout(None):
+              lab([1,int(mid),int(mid),1,100,0.0000001],plat,method,precision)
+            #print(" Done")
+            realVal = mid
+            l = mid + delta    
+        except Exception as inst:
+            #print(" Failed")
+            r = mid - delta  
+    return int(realVal)
 
 def limits(precision=False):
     doubleorfloat = ""
@@ -14,8 +32,6 @@ def limits(precision=False):
       doubleorfloat = "float"
     print("Running limits lab with "+ doubleorfloat +" precision...\n")
     valLimits = {}
-    ini_size = 38000
-    step = 1000
     plat = [0,0,0]
     method = [0,0,0]
     plat_names = ["cuda","opencl","numpy"]
@@ -27,41 +43,10 @@ def limits(precision=False):
         for j in range(3):
             method = [0,0,0]
             method[j] = 1
-            size = ini_size
-            step = 1000
-            ## Look for at least minimum value
-            find_minimum=True
-            while(find_minimum):
-               try:
-                    print("testing size (minimum): " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
-                    #with contextlib.redirect_stdout(None):
-                    lab([1,size,size,1,100,0.0000001],plat,method,precision)
-                    find_minimum = False
-                    if(size<ini_size):
-                        step=step/10
-                    size = size+step
-               except Exception as inst:
-                    size = size - step
-                    if(size==0):
-                        valLimits[plat_names[i]][method_names[j]]=size
-                        break
-            while not find_minimum:
-                try:
-                    print("testing size: " + str(size) + " with " + method_names[j] + " in " + plat_names[i])
-                    #with contextlib.redirect_stdout(None):
-                    lab([1,size,size,1,100,0.0000001],plat,method,precision)
-                    size = size + step
-                except Exception as inst:
-                    print(inst)
-                    gc.collect()
-                    size = size - step
-                    if (step <= 10):
-                        valLimits[plat_names[i]][method_names[j]]=size
-                        break
-                    else:
-                        step = step/10
-                        size = size + step
-                    
+            print("LAB: Testing " + method_names[j] + " in " + plat_names[i], end="... ")
+            size = binarySearch(50000,plat,method,precision)
+            valLimits[plat_names[i]][method_names[j]]=size
+            print("" + str(size))
     print(valLimits)
             
 def usage(ec=None):
