@@ -35,7 +35,9 @@ __kernel void FUNCNAME(const int M, const int N,
       acc += Asub[row*Scols + i] * Bsub[i*Scols + col];
     }
   }
-  C[globalRow*K + globalCol] = acc;
+  if((globalRow < M) && (globalCol < K)){
+    C[globalRow*K + globalCol] = acc;
+  }
 }
 
 #undef FUNCNAME
