@@ -19,7 +19,8 @@ class OurCuda(AnArray,GpuArray):
 
         self.n = n
         self.m = m
-        self.transp = Transp
+        if Transp:
+            self.transp = not self.transp
         if GpuMatrix is None:
             if Matrix.dtype == 'float64':
                 self.npType = np.float64
