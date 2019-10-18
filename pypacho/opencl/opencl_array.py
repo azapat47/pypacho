@@ -29,7 +29,9 @@ class OpenCLArray(AnArray,GpuArray):
                 kernel_params = ''
             if(options is None):
                 options = ['-Werror', '-I', kernel.get_dir()]
-            options = ['-w', '-I', kernel.get_dir()]
+            max_block = int(numpy.sqrt(OpenCLArray.max_block_size))
+            OpenCLArray.max_block_2d = max_block
+            options = ['-w', '-I', kernel.get_dir(), '-DTS=' + str(max_block)]
             OpenCLArray.prg = pyopencl.Program(OpenCLArray.ctx, KERNEL_CODE,
             ).build(options=options)
             OpenCLArray.mf = pyopencl.mem_flags
@@ -110,15 +112,14 @@ class OpenCLArray(AnArray,GpuArray):
 
         nbytes = size * dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, size=nbytes)
-        max_block = int(numpy.sqrt(self.max_block_size))
-        blockx = min(max_block, self.m)
-        blocky = min(max_block, self.n)
-        block = (blockx, blocky)
-        grid = (math.ceil(self.m / blockx) * blockx, math.ceil(self.n / blocky) * blocky)
+        #max_block = int(numpy.sqrt(self.max_block_size))
+        block = (self.max_block_2d, self.max_block_2d)
+        grid = (math.ceil(self.m / self.max_block_2d) * self.max_block_2d,
+         math.ceil(self.n / self.max_block_2d) * self.max_block_2d)
         cl_function(self.queue, grid, block,
                            self.buf, B.buf, c_buf,
-                           pyopencl.LocalMemory(self.dtype.itemsize * (blockx + 1) * blocky),
-                           numpy.uint32(blockx), numpy.uint32(blocky),
+                           #pyopencl.LocalMemory(self.dtype.itemsize * (blockx + 1) * blocky),
+                           #numpy.uint32(blockx), numpy.uint32(blocky),
                            numpy.uint32(self.m), numpy.uint32(self.n))
         #c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
         #cl_function(self.queue, grid, self.block_size,
@@ -328,20 +329,21 @@ class OpenCLArray(AnArray,GpuArray):
             
             nbytes = self.m * B.n * dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
-            block = int(numpy.sqrt(self.max_block_size))
-            blockx = min(block, self.m)
-            blocky = min(block, B.n)
+            #block = int(numpy.sqrt(self.max_block_size))
+            block = (self.max_block_2d, self.max_block_2d)
+            blockx = self.max_block_2d
+            blocky = self.max_block_2d
 
             grid = (math.ceil(self.m / blockx) * blockx, math.ceil(B.n / blocky) * blocky)
-            cl_function(self.queue, grid, (blockx, blocky), 
+            cl_function(self.queue, grid, block, 
                          numpy.uint32(self.m),
                          numpy.uint32(self.n),
                          numpy.uint32(B.n),
-                         numpy.uint32(blockx),
-                         numpy.uint32(blocky),
-                         self.buf, B.buf, c_buf,
-                         pyopencl.LocalMemory(self.dtype.itemsize * blockx * blocky),
-                         pyopencl.LocalMemory(B.dtype.itemsize * blockx * blocky))
+                         #numpy.uint32(blockx),
+                         #numpy.uint32(blocky),
+                         self.buf, B.buf, c_buf)
+                         #pyopencl.LocalMemory(self.dtype.itemsize * blockx * blocky),
+                         #pyopencl.LocalMemory(B.dtype.itemsize * blockx * blocky))
             return OpenCLArray(self.m,B.n,c_buf,None, dtype)
 
     def matrixvec(self, B):

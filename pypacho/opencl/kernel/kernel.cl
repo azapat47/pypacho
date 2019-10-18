@@ -5,6 +5,7 @@
 #define Type1 float
 #define Type2 float
 #define Out_Type float
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -23,12 +24,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 float
 #define Type2 double
 #define Out_Type double
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -42,12 +45,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 float
 #define Type2 int
 #define Out_Type float
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -61,12 +66,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 double
 #define Type2 float
 #define Out_Type double
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -85,12 +92,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 double
 #define Type2 double
 #define Out_Type double
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -104,12 +113,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 double
 #define Type2 int
 #define Out_Type double
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -123,6 +134,7 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
@@ -130,6 +142,7 @@
 #define Type1 int
 #define Type2 float
 #define Out_Type float
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -148,12 +161,14 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
 #define Type1 int
 #define Type2 double
 #define Out_Type double
+#define FMA
 
 #include "add.cl"
 #include "subtract.cl"
@@ -167,6 +182,7 @@
 #undef Type1 
 #undef Type2 
 #undef Out_Type 
+#undef FMA
 
 /*--------------------------------------*/
 
