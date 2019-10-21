@@ -31,7 +31,12 @@ class OpenCLArray(AnArray,GpuArray):
                 options = ['-Werror', '-I', kernel.get_dir()]
             max_block = int(numpy.sqrt(OpenCLArray.max_block_size))
             OpenCLArray.max_block_2d = max_block
-            options = ['-w', '-I', kernel.get_dir(), '-DTS=' + str(max_block)]
+            OpenCLArray.WPT = 8
+            OpenCLArray.RTS = max_block // OpenCLArray.WPT
+            options = ['-w', '-I', kernel.get_dir(), '-DTS=' + str(max_block),
+                       '-DFS=' + str(OpenCLArray.max_block_size),
+                       '-DWPT=', + str(OpenCLArray.WPT),
+                       '-DRTS=' + str(OpenCLArray.RTS)]]
             OpenCLArray.prg = pyopencl.Program(OpenCLArray.ctx, KERNEL_CODE,
             ).build(options=options)
             OpenCLArray.mf = pyopencl.mem_flags
@@ -330,11 +335,11 @@ class OpenCLArray(AnArray,GpuArray):
             nbytes = self.m * B.n * dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
             #block = int(numpy.sqrt(self.max_block_size))
-            block = (self.max_block_2d, self.max_block_2d)
+            block = (self.max_block_2d, self.RTS)
             blockx = self.max_block_2d
             blocky = self.max_block_2d
 
-            grid = (math.ceil(self.m / blockx) * blockx, math.ceil(B.n / blocky) * blocky)
+            grid = (math.ceil(self.m / blockx) * blockx, math.ceil(B.n / blocky) * blocky // self.WPT)
             cl_function(self.queue, grid, block, 
                          numpy.uint32(self.m),
                          numpy.uint32(self.n),
@@ -387,10 +392,8 @@ class OpenCLArray(AnArray,GpuArray):
         grid = (blockx, math.ceil(self.n / blocky) * blocky)
         cl_function(self.queue, grid, block,
                             self.buf, B.buf, c_buf, 
-                            pyopencl.LocalMemory(blockx*blocky*dtype.itemsize),
-                            pyopencl.LocalMemory(blocky*B.dtype.itemsize), 
                             numpy.int32(self.n), numpy.int32(self.m))
-        return OpenCLArray(self.m,1,c_buf,None,dtype)
+        return OpenCLArray(self.m,B.n,c_buf,None,dtype)
 
     def vecdot(self, B):
         size = max(self.m, self.n)
@@ -424,14 +427,13 @@ class OpenCLArray(AnArray,GpuArray):
 
         nbytes = dtype.itemsize
         c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
-        block_size = min(self.max_block_size, size) 
-        block = (block_size, 1)
+        block = (self.max_block_size, 1)
+        block_size = self.max_block_size
         grid_size = size
         grid = (math.ceil(grid_size / block_size) * block_size, 1)
         
         cl_function(self.queue, grid, block,
                             self.buf, B.buf, c_buf, 
-                            pyopencl.LocalMemory(block_size*nbytes), 
                             numpy.int32(size))
         return OpenCLArray(1,1,c_buf,None, dtype)
 

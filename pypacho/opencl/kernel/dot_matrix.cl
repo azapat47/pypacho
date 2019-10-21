@@ -25,26 +25,34 @@ __kernel void FUNCNAME(const int M, const int K,
   __local Out_Type Asub[TS][TS];
   __local Out_Type Bsub[TS][TS];
 
-  Out_Type acc = 0;
+  Out_Type acc[WPT];
+  for(int w = 0; w < WPT; w++) {
+    acc[w] = 0;
+  }
+
   const int a_rectifier = globalRow < M;
-  const int b_rectifier = globalCol < N;
   
   const int numTiles = ceil((float) K / TS);
   for(int t = 0; t < numTiles; t++) {
     const int tiledCol = TS*t + col;
     const int tiledRow = TS*t + row;
 
-    Asub[row][col] = (Out_Type)(a_rectifier * A[tiledCol + globalRow*K]);
-    Bsub[col][row] = (Out_Type)(b_rectifier * B[globalCol + tiledRow*N]);
+    for(int w = 0; w < WPT; w++) {
+     const int b_rectifier = globalCol + w*RTS < N;
+     Asub[row][col + w*RTS] = (Out_Type)(a_rectifier * A[tiledCol + w*RTS + globalRow*K]);
+     Bsub[col + w*RTS][row] = (Out_Type)(b_rectifier * B[globalCol + w*RTS + tiledRow*N]);
+    }
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for(int k=0; k<TS; k++) {
-        #ifdef FMA
-          acc = fma(Asub[row][k], Bsub[col][k], acc);
-        #else
-          acc += Asub[row][k] * Bsub[col][k];
-        #endif
+        for(int w = 0; w < WPT; w++) {
+          #ifdef FMA
+            acc[w] = fma(Asub[row][k], Bsub[col + w*RTS][k], acc[w]);
+          #else
+            acc[w] += Asub[row][k] * Bsub[col + w*RTS][k];
+          #endif
+        }
     }
     barrier(CLK_LOCAL_MEM_FENCE);
   } 
@@ -55,9 +63,11 @@ __kernel void FUNCNAME(const int M, const int K,
       acc += A[k+ globalRow*K] * B[k*N + globalCol];
   }
 */
-if((globalRow < M) && (globalCol < N))
-  C[globalCol + globalRow*N] = acc;
-    // Compute a single element (loop over K)
+  for(int w = 0; w < WPT; w++) {
+    if((globalRow < M) && (globalCol + w*RTS < N))
+      C[globalCol + w*RTS + globalRow*N] = acc[w];
+        // Compute a single element (loop over K)
+  }
 }
 
 #undef FUNCNAME
