@@ -28,6 +28,7 @@ __kernel void FUNCNAME(const int M, const int K,
   __local Out_Type Bsub[TS][TS];
 
   Out_Type acc[WPT];
+  #pragma unroll
   for(int w = 0; w < WPT; w++) {
     acc[w] = 0;
   }
@@ -39,6 +40,7 @@ __kernel void FUNCNAME(const int M, const int K,
     const int tiledCol = TS*t + col;
     const int tiledRow = TS*t + row;
 
+    #pragma unroll
     for(int w = 0; w < WPT; w++) {
      const int b_rectifier = globalCol + w*RTS < N;
      Asub[row][col + w*RTS] = (Out_Type)(a_rectifier * A[tiledCol + w*RTS + globalRow*K]);
@@ -47,12 +49,15 @@ __kernel void FUNCNAME(const int M, const int K,
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
+    #pragma unroll
     for(int k=0; k<TS; k++) {
 
+        #pragma unroll
         for(int w = 0; w < WPT; w++) {
           Breg[w] = Bsub[col + w*RTS][k];
         }
 
+        #pragma unroll
         for(int w = 0; w < WPT; w++) {
           Areg = Asub[row][k];
           #ifdef FMA
@@ -71,6 +76,7 @@ __kernel void FUNCNAME(const int M, const int K,
       acc += A[k+ globalRow*K] * B[k*N + globalCol];
   }
 */
+  #pragma unroll
   for(int w = 0; w < WPT; w++) {
     if((globalRow < M) && (globalCol + w*RTS < N))
       C[globalCol + w*RTS + globalRow*N] = acc[w];
