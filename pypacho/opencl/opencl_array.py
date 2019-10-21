@@ -335,11 +335,11 @@ class OpenCLArray(AnArray,GpuArray):
             nbytes = self.m * B.n * dtype.itemsize
             c_buf = pyopencl.Buffer(self.ctx,self.mf.READ_WRITE, nbytes)
             #block = int(numpy.sqrt(self.max_block_size))
-            block = (self.max_block_2d, self.RTS)
+            block = (self.RTS, self.RTS)
             blockx = self.max_block_2d
             blocky = self.max_block_2d
 
-            grid = (math.ceil(self.m / blockx) * blockx, math.ceil(B.n / blocky) * blocky // self.WPT)
+            grid = (math.ceil(self.m / blockx) * blockx // self.WPT, math.ceil(B.n / blocky) * blocky // self.WPT)
             cl_function(self.queue, grid, block, 
                          numpy.uint32(self.m),
                          numpy.uint32(self.n),
