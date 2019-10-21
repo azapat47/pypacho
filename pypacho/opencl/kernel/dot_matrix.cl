@@ -21,6 +21,8 @@ __kernel void FUNCNAME(const int M, const int K,
   const int globalRow = TS*get_group_id(0) + row;
   const int globalCol = TS*get_group_id(1) + col;
 
+  Out_Type Areg;
+  Out_Type Breg[WPT];
 
   __local Out_Type Asub[TS][TS];
   __local Out_Type Bsub[TS][TS];
@@ -46,11 +48,17 @@ __kernel void FUNCNAME(const int M, const int K,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for(int k=0; k<TS; k++) {
+
         for(int w = 0; w < WPT; w++) {
+          Breg[w] = Bsub[col + w*RTS][k];
+        }
+
+        for(int w = 0; w < WPT; w++) {
+          Areg = Asub[row][k];
           #ifdef FMA
-            acc[w] = fma(Asub[row][k], Bsub[col + w*RTS][k], acc[w]);
+            acc[w] = fma(Areg, Breg[w], acc[w]);
           #else
-            acc[w] += Asub[row][k] * Bsub[col + w*RTS][k];
+            acc[w] += Areg * Breg[w];
           #endif
         }
     }

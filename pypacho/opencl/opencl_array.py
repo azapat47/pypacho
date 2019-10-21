@@ -35,8 +35,8 @@ class OpenCLArray(AnArray,GpuArray):
             OpenCLArray.RTS = max_block // OpenCLArray.WPT
             options = ['-w', '-I', kernel.get_dir(), '-DTS=' + str(max_block),
                        '-DFS=' + str(OpenCLArray.max_block_size),
-                       '-DWPT=', + str(OpenCLArray.WPT),
-                       '-DRTS=' + str(OpenCLArray.RTS)]]
+                       '-DWPT=' + str(OpenCLArray.WPT),
+                       '-DRTS=' + str(OpenCLArray.RTS)]
             OpenCLArray.prg = pyopencl.Program(OpenCLArray.ctx, KERNEL_CODE,
             ).build(options=options)
             OpenCLArray.mf = pyopencl.mem_flags
