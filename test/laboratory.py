@@ -1,7 +1,5 @@
 import helper
 from pypacho.opencl import OpenCLArray
-
-
 from pypacho.anarray import AnArray
 from pypacho.cuda import OurCuda
 from methods.jacobi import jacobi
@@ -10,6 +8,7 @@ from methods.conjugate_gradient import conjugate_gradient
 from methods.conjugate_gradient import import_library as cg_import
 from methods.gradient_descent import gradient_descent, gradient_descent2
 from methods.gradient_descent import import_library as gd_import
+import pycuda.driver as drv
 import numpy as np
 import os
 from time import time
@@ -117,11 +116,22 @@ def main(Glob_params, plataforms, methods, double = False):
 # The arguments must be [Method, Original X, and specific method args]
 # modulo 3
 def test(method, xv, *args):
-    # Initial Time
-    t_start = time()
-    x_meth,iter,disp = method(*args)
-    t = time() - t_start
-    # Final Time
+    # Time cuda
+    if(isinstance(args[0],OurCuda)):
+      start = drv.Event()
+      end = drv.Event()
+      start.record()
+      start.synchronize()
+      x_meth,iter,disp = method(*args)
+      end.record() 
+      end.synchronize() 
+      t = start.time_till(end)*1e-3
+    # Time OpenCL and Numpy
+    else:  
+      t_start = time()
+      x_meth,iter,disp = method(*args)
+      t = time() - t_start
+    # Answer
     if not isinstance(x_meth,np.ndarray):
       x = x_meth.to_numpy()
     else:

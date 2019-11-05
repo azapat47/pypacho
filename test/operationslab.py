@@ -1,6 +1,7 @@
 import helper
 from pypacho.cuda import OurCuda
 from pypacho.opencl import OpenCLArray
+import pycuda.driver as drv
 import numpy
 import pypacho
 import os
@@ -109,12 +110,23 @@ def main(Glob_params, plataforms, methods, double = False):
     
     
 def test(method, *args):
-    # Initial Time
-    t_start = time()
-    result = method(*args)
-    t = time() - t_start
-    # Final Time
+    # Cuda Time
+    if isinstance(args[0],OurCuda):
+      start = drv.Event()
+      end = drv.Event()
+      start.record()
+      start.synchronize()
+      result = method(*args)
+      end.record() 
+      end.synchronize() 
+      t = start.time_till(end)*1e-3
+    else:
+      t_start = time()
+      result = method(*args)
+      t = time() - t_start
     return t
+
+
 
 def runner(an,am,bn,bm,
       cuda=False,opencl=False,numpy=False,
