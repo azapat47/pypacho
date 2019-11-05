@@ -13,14 +13,16 @@ def binarySearch(r,plat,method,precision):
     while l <= r: 
         mid = l + (r - l)/2 
         try:
-            #print("Trying minimum... " + str(mid) + " [" + str(l) + " , "+ str(r) + "]...", end="")
+            print("Trying minimum... " + str(mid) + " [" + str(l) + " , "+ str(r) + "]...", end="")
             with contextlib.redirect_stdout(None):
               lab([1,int(mid),int(mid),1,100,0.0000001],plat,method,precision)
-            #print(" Done")
+            print(" Done")
             realVal = mid
             l = mid + delta    
         except Exception as inst:
-            #print(" Failed")
+            print(" Failed")
+            print("Catched ERROR:")
+            print(inst)
             r = mid - delta  
     return int(realVal)
 
