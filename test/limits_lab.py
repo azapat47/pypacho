@@ -4,6 +4,7 @@ import os
 import sys
 import contextlib
 import json
+import time
 
 # Iterative Binary Search Function 
 def binarySearch(r,plat,method,precision): 
@@ -14,6 +15,9 @@ def binarySearch(r,plat,method,precision):
         mid = l + (r - l)/2 
         try:
             print("Trying minimum... " + str(mid) + " [" + str(l) + " , "+ str(r) + "]...", end="")
+            print("Safe wait for memory allocation... ", end="")
+            time.sleep(60)
+            print("End Wait")
             with contextlib.redirect_stdout(None):
               lab([1,int(mid),int(mid),1,100,0.0000001],plat,method,precision)
             print(" Done")
