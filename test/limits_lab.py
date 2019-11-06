@@ -65,6 +65,7 @@ def usage(ec=None):
 
 
 if __name__ == '__main__':
+    os.environ["PYOPENCL_CTX"]='0'
     len_params = len(sys.argv)
     if(len_params>2): usage(0)
     if(len_params==2):
