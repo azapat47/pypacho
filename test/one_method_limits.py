@@ -36,7 +36,7 @@ def limits(method,doubleorfloat):
     methods = [0,0,0]
     plat_names = ["cuda","opencl","numpy"]
     method_names = ["Jacobi","GD","CG"]
-    for i in range(2):
+    for i in range(1):
         valLimits[plat_names[i]] = {}
         plat = [0,0,0]
         plat[i] = 1
