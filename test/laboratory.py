@@ -40,6 +40,23 @@ def turn_dominant2(Matriz):
       Matriz[i][i] = Matriz.shape[0] + delta
 
       
+def get_alpha(matrix_size):
+    if matrix_size < 600:
+      alpha = 0.00001
+    if matrix_size < 1400:
+      alpha = 1*10-12
+    elif matrix_size <= 2400:
+      alpha = 1*10**-14
+    elif matrix_size <= 3000:
+      alpha = 5*10**-15
+    elif matrix_size <= 4000:
+      alpha = 2*10**-15
+    elif matrix_size <= 7500:
+      alpha = 1*10**-15
+    else:
+      alpha = 1*10**-16
+    return np.float64(alpha)
+
 # Arguments: EXIT_CODE: specify if any exit code is required       
 def usage(ec=None):
   print("Usage - python3 laboratory.py [args] ")
@@ -100,10 +117,11 @@ def main(Glob_params, plataforms, methods, double = False):
     for matrix_size in range(ini_size, ini_size+(delta*n), delta): 
       print("LAB: Matrix size", matrix_size, end=" | ")
       print(str(int(((matrix_size-ini_size)/delta)+1)) + '/' + str(n))
+      alpha = get_alpha(matrix_size)
       # Number Of trys  
       for tr in range(Glob_params[0]): 
         print("  LAB: Trying number", tr+1, end='... ')
-        df = runner(matrix_size, iter_meth, tolerance,0.001, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], double)
+        df = runner(matrix_size, iter_meth, tolerance,alpha, plataforms[0], plataforms[1], plataforms[2], methods[0],  methods[1],  methods[2], double)
         fat_panda = pd.concat([fat_panda,df], ignore_index=True)
         print("DONE")
     
@@ -177,7 +195,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
 
     if grad_descent == True:
       gd_import("pypacho")
-      iter,time,error,dispersion = test(gradient_descent2, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
+      iter,time,error,dispersion = test(gradient_descent, xv, a_cuda, b_cuda, alpha, x_cuda, N, tol)
       platform.append("cuda")
       method.append("GD")
       Size.append(size)
@@ -221,7 +239,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       dispersions.append(dispersion)
     if grad_descent == True:
       gd_import("pypacho")
-      iter,time,error,dispersion = test(gradient_descent2, xv, a_cl, b_cl, alpha, x_cl, N, tol)
+      iter,time,error,dispersion = test(gradient_descent, xv, a_cl, b_cl, alpha, x_cl, N, tol)
       platform.append("opencl")
       method.append("GD")
       Size.append(size)
@@ -257,7 +275,7 @@ def runner(size=100, N=100, tol=0.001, alpha=0.001,
       dispersions.append(dispersion)
     if grad_descent == True:
       gd_import("numpy")
-      iter,time,error,dispersion = test(gradient_descent2, xv, A, B, alpha, x_ini, N, tol)
+      iter,time,error,dispersion = test(gradient_descent, xv, A, B, alpha, x_ini, N, tol)
       platform.append("numpy")
       method.append("GD")
       Size.append(size)
@@ -288,3 +306,4 @@ if __name__ == '__main__':
     main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]))
   else:
     main(json.loads(sys.argv[1]), json.loads(sys.argv[2]), json.loads(sys.argv[3]),json.loads(sys.argv[4]))
+
