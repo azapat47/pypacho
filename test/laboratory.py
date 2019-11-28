@@ -41,10 +41,12 @@ def turn_dominant2(Matriz):
 
       
 def get_alpha(matrix_size):
-    if matrix_size < 600:
-      alpha = 0.00001
-    if matrix_size < 1400:
-      alpha = 1*10-12
+    if matrix_size < 50:
+      alpha = 0.0001
+    elif matrix_size < 300:
+      alpha = 1*10**-13
+    elif matrix_size < 1200:
+      alpha = 5*10**-14
     elif matrix_size <= 2400:
       alpha = 1*10**-14
     elif matrix_size <= 3000:
