@@ -1,4 +1,4 @@
-# hairyNumbers
+# PyPacho
 Análisis Numérico - Métodos Numéricos implementados en OpenCL y CUDA
 
 ## Autores
