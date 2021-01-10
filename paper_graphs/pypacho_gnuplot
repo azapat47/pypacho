@@ -1,0 +1,15 @@
+set term qt size 1300,800
+set style line 1 lc rgb "red"
+set style line 2 lc rgb "blue"
+set style line 3 lc rgb "green"
+set style fill solid
+set grid ytics mytics  # draw lines for each ytics and mytics
+set mytics 2           # set the spacing for the mytics
+set grid               # enable the grid
+set datafile separator ','
+set boxwidth 0.3
+set multiplot layout 2,1
+plot "cl_division.data" u ($0-0.2):2:xtic(1) with boxes title columnhead ls 1,\
+      "cuda_division.data" u ($0+0.2):2 with boxes title columnhead ls 2
+plot "numpy_division.data" u :2:xtic(1) with boxes title columnhead ls 3
+unset multiplot
