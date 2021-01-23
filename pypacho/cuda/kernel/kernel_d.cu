@@ -283,6 +283,7 @@ __global__ void matrixMul(double * A, double * B, double * C,
 
 __global__ void vec_dot(double * a, double * b, double * c, int size,
                    int t_a, int t_b) {
+    c[0] = 0;	
     //@@ Insert code to implement matrix multiplication here
     __shared__ double temp[N];
     int tx = threadIdx.x + blockDim.x * blockIdx.x;
