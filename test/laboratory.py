@@ -55,8 +55,18 @@ def get_alpha(matrix_size):
       alpha = 2*10**-15
     elif matrix_size <= 7500:
       alpha = 1*10**-15
-    else:
+    elif matrix_size <= 10500:
+      alpha = 4*10**-16
+    elif matrix_size <= 11500:
+      alpha = 3*10**-16
+    elif matrix_size <= 15500:
+      alpha = 2*10**-16
+    elif matrix_size <= 17500:
+      alpha = 1.5*10**-16
+    elif matrix_size <= 22500:
       alpha = 1*10**-16
+    else:
+      alpha = 5*10**-17
     return np.float64(alpha)
 
 # Arguments: EXIT_CODE: specify if any exit code is required       
